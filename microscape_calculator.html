@@ -815,7 +815,8 @@
   </div>
 </div>
 
-<div style="display:flex;justify-content:flex-end">
+<div style="display:flex;justify-content:space-between;align-items:center">
+  <button class="btn btn-dim" onclick="clearAll()">CLEAR</button>
   <button class="btn btn-calculate" onclick="calculate()">&#9654; CALCULATE</button>
 </div>
 
@@ -838,6 +839,29 @@ function togglePanel(bodyId, titleEl) {
   const isCollapsed = body.classList.contains('collapsed');
   body.classList.toggle('collapsed', !isCollapsed);
   titleEl.classList.toggle('collapsed', !isCollapsed);
+}
+
+function clearAll() {
+  document.getElementById('currentLevel').value = '';
+  document.getElementById('goalLevel').value    = '';
+  document.getElementById('currentPct').value   = '';
+
+  document.getElementById('itemsList').innerHTML = '';
+  itemCount = 0; chainItemId = null; primaryItemId = null;
+  const btn = document.getElementById('btnChain');
+  btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
+  addPrimary();
+
+  const itemsBody  = document.getElementById('itemsBody');
+  const itemsTitle = document.querySelector('.panel-title.collapsible[onclick*="itemsBody"]');
+  if (itemsBody.classList.contains('collapsed')) {
+    itemsBody.classList.remove('collapsed');
+    itemsTitle.classList.remove('collapsed');
+  }
+
+  document.getElementById('results').classList.remove('visible');
+  activePresetId = null;
+  renderPresetTabs();
 }
 
 let itemCount = 0;
