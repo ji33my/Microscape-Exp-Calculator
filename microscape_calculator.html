@@ -134,15 +134,6 @@
   input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(232,184,75,0.12); }
   input::placeholder { color: var(--text-dim); opacity: 0.5; font-weight: 400; }
 
-  input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--gold);
-    cursor: pointer;
-    flex-shrink: 0;
-    margin: 0;
-  }
-
   .check-label {
     display: flex;
     align-items: center;
@@ -158,6 +149,45 @@
     margin-bottom: 0;
   }
   .check-label:hover { color: var(--text); }
+  .check-label:hover .check-box { border-color: var(--gold2); }
+
+  .check-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .check-box {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    border: 1px solid var(--border-light);
+    border-radius: 3px;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .check-box::after {
+    content: '';
+    width: 5px;
+    height: 9px;
+    border-right: 2px solid var(--bg);
+    border-bottom: 2px solid var(--bg);
+    transform: rotate(45deg) translate(-1px, -1px);
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .check-label input[type="checkbox"]:checked + .check-box {
+    background: var(--gold);
+    border-color: var(--gold);
+  }
+  .check-label input[type="checkbox"]:checked + .check-box::after {
+    opacity: 1;
+  }
 
   .time-section {
     margin-top: 14px;
@@ -844,6 +874,7 @@
   <div class="time-section">
     <label class="check-label">
       <input type="checkbox" id="enableTime" onchange="toggleTimeOptions()">
+      <span class="check-box"></span>
       <span>ENABLE TIME ESTIMATE</span>
     </label>
     <div id="timeOptions" style="display:none;margin-top:12px">
@@ -855,6 +886,7 @@
         <div style="display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:4px">
           <label class="check-label">
             <input type="checkbox" id="shellPockets">
+            <span class="check-box"></span>
             <span>SHELL POCKETS</span>
           </label>
           <div class="time-note">Loot bag: 25 → 27 slots</div>
