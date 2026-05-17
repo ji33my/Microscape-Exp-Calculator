@@ -1581,7 +1581,7 @@ function calculate() {
 
     const rightContent = r.ownedCoversGoal
       ? `<div class="result-done-text">DONE</div>`
-      : `<div class="result-xp-total" style="color:var(--accent)">${r.craftCount.toLocaleString()}</div><div class="result-xp-label">to craft</div>`;
+      : `<div class="result-xp-total" style="color:var(--accent)">${r.craftCount.toLocaleString()}</div><div class="result-xp-label">to craft/gather</div>`;
 
     card.innerHTML = `
       <div class="result-card-header ${headerClass}">${headerText}</div>
