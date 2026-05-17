@@ -464,12 +464,14 @@
     gap: 0;
     margin-bottom: 12px;
     border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    flex-wrap: nowrap;
   }
 
   .skill-tab {
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
-    padding: 8px 14px;
+    padding: 8px 12px;
     border: var(--pixel) solid var(--border);
     border-bottom: none;
     cursor: pointer;
@@ -477,6 +479,8 @@
     color: var(--text-dim);
     letter-spacing: 0.5px;
     margin-bottom: -2px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .skill-tab:hover { color: var(--text); }
   .skill-tab.active { background: var(--panel); color: var(--gold); border-color: var(--gold2); }
@@ -628,7 +632,7 @@
 
 <!-- Skill Tables Modal -->
 <div class="modal-overlay" id="skillModal">
-  <div class="modal-box" style="max-width:600px">
+  <div class="modal-box" style="max-width:740px">
     <div class="panel-title">SKILL ITEM TABLES</div>
     <div class="skill-tabs" id="skillTabs"></div>
     <div class="skill-table-wrap">
