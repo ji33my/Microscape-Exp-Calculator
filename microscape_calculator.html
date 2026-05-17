@@ -458,6 +458,74 @@
     background: rgba(255,255,255,0.08);
   }
 
+  /* Skill tables modal */
+  .skill-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .skill-tab {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 8px 14px;
+    border: var(--pixel) solid var(--border);
+    border-bottom: none;
+    cursor: pointer;
+    background: var(--panel2);
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    margin-bottom: -2px;
+  }
+  .skill-tab:hover { color: var(--text); }
+  .skill-tab.active { background: var(--panel); color: var(--gold); border-color: var(--gold2); }
+
+  .skill-table-wrap {
+    max-height: 440px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+  }
+
+  .skill-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 17px;
+  }
+
+  .skill-table thead th {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--gold2);
+    text-align: left;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 1px;
+    position: sticky;
+    top: 0;
+    background: var(--panel2);
+    white-space: nowrap;
+  }
+
+  .skill-table td {
+    padding: 4px 10px;
+    border-bottom: 1px solid rgba(139,105,20,0.2);
+    color: var(--text);
+  }
+
+  .skill-table tr:hover td { background: rgba(201,162,39,0.05); }
+
+  .skill-table td.td-lvl {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--gold2);
+    text-align: center;
+    width: 50px;
+  }
+
+  .skill-table td.td-xp  { color: var(--accent); text-align: right; width: 60px; }
+  .skill-table td.td-sell { color: var(--gold2); text-align: right; width: 70px; }
+
   .cost-summary {
     background: var(--panel2);
     border: 1px solid var(--border);
@@ -558,6 +626,28 @@
   </div>
 </div>
 
+<!-- Skill Tables Modal -->
+<div class="modal-overlay" id="skillModal">
+  <div class="modal-box" style="max-width:600px">
+    <div class="panel-title">SKILL ITEM TABLES</div>
+    <div class="skill-tabs" id="skillTabs"></div>
+    <div class="skill-table-wrap">
+      <table class="skill-table">
+        <thead>
+          <tr>
+            <th>ITEM</th>
+            <th style="text-align:center">LVL</th>
+            <th style="text-align:right">XP</th>
+            <th style="text-align:right">SELL (GP)</th>
+          </tr>
+        </thead>
+        <tbody id="skillTableBody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-dim" onclick="closeSkillModal()" style="width:100%;margin-top:12px">CLOSE</button>
+  </div>
+</div>
+
 <!-- Storage Options Modal -->
 <div class="modal-overlay" id="storageModal">
   <div class="modal-box" style="max-width:420px">
@@ -624,6 +714,7 @@
 <div class="util-row">
   <button class="btn btn-util" onclick="openSaveModal()">&#128190; SAVE PRESET</button>
   <button class="btn btn-util" onclick="showXPTable()">&#128203; VIEW XP TABLE</button>
+  <button class="btn btn-util" onclick="showSkillTable('Smithing')">&#9878; SKILL TABLES</button>
 </div>
 
 <div class="results" id="results">
@@ -1265,6 +1356,221 @@ function calculate() {
   document.getElementById('results').classList.add('visible');
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+// ---- Skill Data ----
+const SKILL_DATA = {
+  Smithing: [
+    { item: 'Bronze Bar',        xp: 6,     lvl: 1,  sell: 2   },
+    { item: 'Bronze Dagger',     xp: 12,    lvl: 1,  sell: 2   },
+    { item: 'Bronze Axe',        xp: 12,    lvl: 2,  sell: 4   },
+    { item: 'Bronze Pickaxe',    xp: 12,    lvl: 2,  sell: 4   },
+    { item: 'Bronze Med Helm',   xp: 12,    lvl: 3,  sell: 2   },
+    { item: 'Bronze Scimitar',   xp: 25,    lvl: 5,  sell: 4   },
+    { item: 'Bronze Sq Shield',  xp: 25,    lvl: 7,  sell: 4   },
+    { item: 'Bronze Armor',      xp: 100,   lvl: 9,  sell: 10  },
+    { item: 'Iron Bar',          xp: 12,    lvl: 15, sell: 4   },
+    { item: 'Iron Dagger',       xp: 25,    lvl: 15, sell: 4   },
+    { item: 'Iron Shears',       xp: 25,    lvl: 15, sell: 5   },
+    { item: 'Iron Med Helm',     xp: 25,    lvl: 17, sell: 4   },
+    { item: 'Iron Scimitar',     xp: 50,    lvl: 19, sell: 8   },
+    { item: 'Silver Bar',        xp: 13,    lvl: 20, sell: 8   },
+    { item: 'Iron Sq Shield',    xp: 50,    lvl: 21, sell: 8   },
+    { item: 'Iron Armor',        xp: 200,   lvl: 23, sell: 20  },
+    { item: 'Steel Bar',         xp: 17,    lvl: 30, sell: 14  },
+    { item: 'Steel Dagger',      xp: 37,    lvl: 30, sell: 14  },
+    { item: 'Steel Shovel Head', xp: 37,    lvl: 30, sell: 15  },
+    { item: 'Steel Med Helm',    xp: 37,    lvl: 32, sell: 14  },
+    { item: 'Steel Scimitar',    xp: 75,    lvl: 34, sell: 28  },
+    { item: 'Steel Sq Shield',   xp: 75,    lvl: 36, sell: 28  },
+    { item: 'Steel Armor',       xp: 300,   lvl: 38, sell: 70  },
+    { item: 'Gold Bar',          xp: 22,    lvl: 40, sell: 8   },
+    { item: 'Mithril Bar',       xp: 30,    lvl: 50, sell: 34  },
+    { item: 'Mithril Dagger',    xp: 50,    lvl: 50, sell: 34  },
+    { item: 'Mithril Med Helm',  xp: 50,    lvl: 52, sell: 34  },
+    { item: 'Mithril Scimitar',  xp: 100,   lvl: 54, sell: 68  },
+    { item: 'Mithril Sq Shield', xp: 100,   lvl: 56, sell: 68  },
+    { item: 'Mithril Armor',     xp: 400,   lvl: 58, sell: 170 },
+    { item: 'Adamant Bar',       xp: 37,    lvl: 70, sell: 50  },
+    { item: 'Adamant Dagger',    xp: 62.5,  lvl: 70, sell: 50  },
+    { item: 'Adamant Med Helm',  xp: 62.5,  lvl: 72, sell: 50  },
+    { item: 'Adamant Scimitar',  xp: 125,   lvl: 74, sell: 100 },
+    { item: 'Adamant Sq Shield', xp: 125,   lvl: 76, sell: 100 },
+    { item: 'Adamant Armor',     xp: 500,   lvl: 78, sell: 250 },
+    { item: 'Progrite Bar',      xp: 45,    lvl: 85, sell: 64  },
+    { item: 'Progrite Dagger',   xp: 75,    lvl: 85, sell: 64  },
+    { item: 'Progrite Med Helm', xp: 75,    lvl: 87, sell: 64  },
+    { item: 'Progrite Scimitar', xp: 150,   lvl: 89, sell: 128 },
+    { item: 'Progrite Sq Shield',xp: 150,   lvl: 91, sell: 128 },
+    { item: 'Progrite Armor',    xp: 600,   lvl: 93, sell: 320 },
+  ],
+  Cooking: [
+    { item: 'Shrimp',            xp: 10,  lvl: 1,  sell: 1  },
+    { item: 'Meat',              xp: 10,  lvl: 1,  sell: 1  },
+    { item: 'Frog on a Stick',   xp: 10,  lvl: 1,  sell: 1  },
+    { item: 'Chicken',           xp: 10,  lvl: 1,  sell: 1  },
+    { item: 'Bread',             xp: 40,  lvl: 1,  sell: 4  },
+    { item: 'Sardine',           xp: 20,  lvl: 5,  sell: 2  },
+    { item: 'Redberry Pie',      xp: 60,  lvl: 10, sell: 8  },
+    { item: 'Trout',             xp: 42,  lvl: 15, sell: 4  },
+    { item: 'Meat Pie',          xp: 80,  lvl: 20, sell: 10 },
+    { item: 'Salmon',            xp: 54,  lvl: 25, sell: 6  },
+    { item: 'Apple Pie',         xp: 100, lvl: 30, sell: 12 },
+    { item: 'Lobster',           xp: 72,  lvl: 40, sell: 8  },
+    { item: 'Swordfish',         xp: 84,  lvl: 45, sell: 10 },
+    { item: 'Braised Pyreshell', xp: 100, lvl: 60, sell: 12 },
+    { item: 'Shark',             xp: 126, lvl: 80, sell: 14 },
+    { item: 'Manta Ray',         xp: 130, lvl: 91, sell: 16 },
+  ],
+  Fletching: [
+    { item: 'Arrow Shafts (Bronze)', xp: 5,   lvl: 1,  sell: null },
+    { item: 'Bronze Arrows',         xp: 12,  lvl: 1,  sell: 1    },
+    { item: 'Bow (u)',               xp: 5,   lvl: 5,  sell: 1    },
+    { item: 'Bow',                   xp: 8,   lvl: 5,  sell: 3    },
+    { item: 'Arrow Shafts (Iron)',   xp: 10,  lvl: 15, sell: null },
+    { item: 'Iron Arrows',           xp: 25,  lvl: 15, sell: 1    },
+    { item: 'Oak Bow (u)',           xp: 19,  lvl: 20, sell: 6    },
+    { item: 'Oak Bow',               xp: 20,  lvl: 20, sell: 12   },
+    { item: 'Arrow Shafts (Steel)',  xp: 15,  lvl: 30, sell: null },
+    { item: 'Steel Arrows',          xp: 50,  lvl: 30, sell: 2    },
+    { item: 'Willow Bow (u)',        xp: 46,  lvl: 35, sell: 12   },
+    { item: 'Willow Bow',            xp: 45,  lvl: 35, sell: 20   },
+    { item: 'Arrow Shafts (Mithril)',xp: 20,  lvl: 45, sell: null },
+    { item: 'Mithril Arrows',        xp: 75,  lvl: 45, sell: 4    },
+    { item: 'Maple Bow (u)',         xp: 80,  lvl: 50, sell: 18   },
+    { item: 'Maple Bow',             xp: 70,  lvl: 50, sell: 18   },
+    { item: 'Arrow Shafts (Adamant)',xp: 25,  lvl: 60, sell: null },
+    { item: 'Adamant Arrows',        xp: 100, lvl: 60, sell: 6    },
+    { item: 'Yew Bow (u)',           xp: 119, lvl: 65, sell: 24   },
+    { item: 'Yew Bow',               xp: 100, lvl: 65, sell: 38   },
+    { item: 'Arrow Shafts (Progrite)',xp: 30, lvl: 75, sell: null },
+    { item: 'Progrite Arrows',       xp: 125, lvl: 75, sell: 7    },
+    { item: 'Magic Bow (u)',         xp: 166, lvl: 80, sell: 30   },
+    { item: 'Magic Bow',             xp: 130, lvl: 80, sell: 48   },
+  ],
+  Fishing: [
+    { item: 'Raw Shrimp',     xp: 40,  lvl: 1,  sell: 1     },
+    { item: 'Raw Sardine',    xp: 50,  lvl: 10, sell: 2     },
+    { item: 'Raw Trout',      xp: 55,  lvl: 20, sell: 4     },
+    { item: 'Raw Salmon',     xp: 70,  lvl: 30, sell: 6     },
+    { item: 'Raw Lobster',    xp: 83,  lvl: 40, sell: 8     },
+    { item: 'Blue Lobster',   xp: 83,  lvl: 40, sell: 23000 },
+    { item: 'Raw Swordfish',  xp: 89,  lvl: 50, sell: 10    },
+    { item: 'Raw Pyreshell',  xp: 100, lvl: 60, sell: 6     },
+    { item: 'Raw Shark',      xp: 110, lvl: 76, sell: 14    },
+    { item: 'Raw Manta Ray',  xp: 115, lvl: 81, sell: 16    },
+  ],
+  Mining: [
+    { item: 'Copper',     xp: 15,  lvl: 1,  sell: 1 },
+    { item: 'Tin',        xp: 15,  lvl: 1,  sell: 1 },
+    { item: 'Iron',       xp: 35,  lvl: 15, sell: 2 },
+    { item: 'Silver',     xp: 40,  lvl: 20, sell: 8 },
+    { item: 'Coal',       xp: 50,  lvl: 30, sell: 3 },
+    { item: 'Gold',       xp: 65,  lvl: 40, sell: 5 },
+    { item: 'Mithril',    xp: 80,  lvl: 55, sell: 5 },
+    { item: 'Adamantite', xp: 95,  lvl: 70, sell: 7 },
+    { item: 'Progrite',   xp: 125, lvl: 85, sell: 9 },
+  ],
+  Herblaw: [
+    { item: 'Defense Potion',          xp: 384,  lvl: 1,  sell: 21  },
+    { item: 'Fishing Potion',          xp: 453,  lvl: 2,  sell: 21  },
+    { item: 'Attack Potion',           xp: 525,  lvl: 4,  sell: 21  },
+    { item: 'Woodcutting Potion',      xp: 594,  lvl: 7,  sell: 23  },
+    { item: 'Mining Potion',           xp: 666,  lvl: 10, sell: 43  },
+    { item: 'Strength Potion',         xp: 735,  lvl: 13, sell: 43  },
+    { item: 'Cooking Potion',          xp: 807,  lvl: 16, sell: 39  },
+    { item: 'Herblaw Potion',          xp: 876,  lvl: 18, sell: 43  },
+    { item: 'Firemaking Potion',       xp: 948,  lvl: 21, sell: 105 },
+    { item: 'Fletching Potion',        xp: 1017, lvl: 24, sell: 83  },
+    { item: 'Good Magic Potion',       xp: 1089, lvl: 27, sell: 79  },
+    { item: 'Crafting Potion',         xp: 1158, lvl: 30, sell: 111 },
+    { item: 'Ranged Potion',           xp: 1230, lvl: 32, sell: 113 },
+    { item: 'Evil Magic Potion',       xp: 1299, lvl: 35, sell: 113 },
+    { item: 'Smithing Potion',         xp: 1371, lvl: 38, sell: 117 },
+    { item: 'Piety Potion',            xp: 1440, lvl: 41, sell: 149 },
+    { item: 'Super Defense Potion',    xp: 1920, lvl: 44, sell: 155 },
+    { item: 'Super Fishing Potion',    xp: 2004, lvl: 46, sell: 149 },
+    { item: 'Super Attack Potion',     xp: 2085, lvl: 49, sell: 163 },
+    { item: 'Super Woodcutting Potion',xp: 2169, lvl: 52, sell: 195 },
+    { item: 'Super Mining Potion',     xp: 2253, lvl: 55, sell: 203 },
+    { item: 'Super Strength Potion',   xp: 2337, lvl: 58, sell: 205 },
+    { item: 'Super Cooking Potion',    xp: 2418, lvl: 60, sell: 237 },
+    { item: 'Super Herblaw Potion',    xp: 2502, lvl: 63, sell: 241 },
+    { item: 'Super Firemaking Potion', xp: 2586, lvl: 66, sell: 257 },
+    { item: 'Super Fletching Potion',  xp: 2670, lvl: 69, sell: 243 },
+    { item: 'Super Good Magic Potion', xp: 2751, lvl: 72, sell: 273 },
+    { item: 'Super Crafting Potion',   xp: 2835, lvl: 74, sell: 271 },
+    { item: 'Super Ranged Potion',     xp: 2919, lvl: 77, sell: 275 },
+    { item: 'Super Evil Magic Potion', xp: 3003, lvl: 80, sell: 317 },
+    { item: 'Super Smithing Potion',   xp: 3084, lvl: 83, sell: 321 },
+    { item: 'Super Piety Potion',      xp: 3168, lvl: 85, sell: 311 },
+  ],
+  Crafting: [
+    { item: 'Spin Wool',                xp: 3,   lvl: 1,  sell: 3   },
+    { item: 'Unfired Pot',              xp: 6,   lvl: 1,  sell: 3   },
+    { item: 'Pot',                      xp: 15,  lvl: 1,  sell: 1   },
+    { item: 'Leather Gloves',           xp: 33,  lvl: 1,  sell: 5   },
+    { item: 'Molten Glass',             xp: 20,  lvl: 1,  sell: 4   },
+    { item: 'Unfired Pie Dish',         xp: 10,  lvl: 4,  sell: 3   },
+    { item: 'Pie Dish',                 xp: 35,  lvl: 4,  sell: 2   },
+    { item: 'Leather Boots',            xp: 39,  lvl: 7,  sell: 5   },
+    { item: 'Gold Amulet (u)',          xp: 60,  lvl: 8,  sell: 9   },
+    { item: 'Steel Shovel',             xp: 55,  lvl: 10, sell: 22  },
+    { item: 'Leather Armor',            xp: 60,  lvl: 14, sell: 9   },
+    { item: 'Holy Amulet (u)',          xp: 90,  lvl: 16, sell: 9   },
+    { item: 'Evil Amulet (u)',          xp: 95,  lvl: 17, sell: 9   },
+    { item: 'Cut Sapphire',             xp: 120, lvl: 20, sell: 48  },
+    { item: 'Feathered Cap',            xp: 100, lvl: 22, sell: 12  },
+    { item: 'Sapphire Amulet (u)',      xp: 144, lvl: 24, sell: 57  },
+    { item: 'Cut Emerald',              xp: 162, lvl: 27, sell: 91  },
+    { item: 'Emerald Amulet (u)',       xp: 168, lvl: 30, sell: 100 },
+    { item: 'Vial',                     xp: 35,  lvl: 33, sell: 1   },
+    { item: 'Cut Ruby',                 xp: 204, lvl: 34, sell: 174 },
+    { item: 'Golden Rod',               xp: 126, lvl: 40, sell: 49  },
+    { item: 'Cut Diamond',              xp: 258, lvl: 43, sell: 337 },
+    { item: 'Unpowered Orb',            xp: 126, lvl: 46, sell: 5   },
+    { item: 'Ruby Amulet (u)',          xp: 204, lvl: 50, sell: 183 },
+    { item: 'Air Battlestaff',          xp: 120, lvl: 54, sell: 38  },
+    { item: 'Fire Battlestaff',         xp: 150, lvl: 62, sell: 42  },
+    { item: 'Diamond Amulet (u)',       xp: 240, lvl: 70, sell: 346 },
+    { item: 'Dragonstone Amulet (u)',   xp: 360, lvl: 80, sell: 771 },
+    { item: 'String Gold Amulet',       xp: null, lvl: 8,  sell: 14  },
+    { item: 'String Holy Amulet',       xp: null, lvl: 16, sell: 14  },
+    { item: 'String Evil Amulet',       xp: null, lvl: 17, sell: 14  },
+    { item: 'Bless Holy Amulet',        xp: null, lvl: 18, sell: 17  },
+    { item: 'Curse Evil Amulet',        xp: null, lvl: 18, sell: 26  },
+    { item: 'String Sapphire Amulet',   xp: null, lvl: 24, sell: 62  },
+    { item: 'String Emerald Amulet',    xp: null, lvl: 30, sell: 105 },
+    { item: 'String Ruby Amulet',       xp: null, lvl: 50, sell: 188 },
+    { item: 'String Diamond Amulet',    xp: null, lvl: 70, sell: 351 },
+    { item: 'String Dragonstone Amulet',xp: null, lvl: 80, sell: 776 },
+  ],
+};
+
+let activeSkillTab = 'Smithing';
+
+function showSkillTable(skill) {
+  activeSkillTab = skill || activeSkillTab;
+  const skills = Object.keys(SKILL_DATA);
+  document.getElementById('skillTabs').innerHTML = skills.map(s => `
+    <button class="skill-tab${s === activeSkillTab ? ' active' : ''}" onclick="showSkillTable('${s}')">${s}</button>
+  `).join('');
+  const rows = SKILL_DATA[activeSkillTab].map(r => `
+    <tr>
+      <td>${r.item}</td>
+      <td class="td-lvl">${r.lvl}</td>
+      <td class="td-xp">${r.xp !== null ? r.xp : '—'}</td>
+      <td class="td-sell">${r.sell}</td>
+    </tr>
+  `).join('');
+  document.getElementById('skillTableBody').innerHTML = rows;
+  document.getElementById('skillModal').classList.add('open');
+}
+
+function closeSkillModal() {
+  document.getElementById('skillModal').classList.remove('open');
+}
+
+document.getElementById('skillModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSkillModal(); });
 
 renderPresetTabs();
 addPrimary();
