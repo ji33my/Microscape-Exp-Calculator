@@ -274,6 +274,81 @@
   }
   .preset-del:hover { opacity: 1; }
 
+  /* Storage options button */
+  .storage-btn-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+  }
+
+  .btn-storage {
+    font-size: 12px;
+    padding: 5px 12px;
+    color: var(--text-dim);
+    border-color: var(--border);
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+  }
+  .btn-storage:hover { color: var(--text); border-color: var(--border-light); }
+
+  /* Storage mode toggle */
+  .storage-toggle {
+    display: flex;
+    gap: 0;
+    margin: 10px 0 16px;
+  }
+
+  .storage-toggle-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 8px 16px;
+    border: var(--pixel) solid var(--border);
+    cursor: pointer;
+    background: var(--panel2);
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    flex: 1;
+    text-align: center;
+    transition: all 0.1s;
+  }
+  .storage-toggle-btn:first-child { border-right: none; }
+  .storage-toggle-btn.active {
+    background: rgba(201,162,39,0.15);
+    color: var(--gold);
+    border-color: var(--gold2);
+  }
+
+  .storage-clear-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .btn-clear {
+    flex: 1;
+    font-size: 12px;
+    padding: 7px 10px;
+    color: var(--red);
+    border-color: #7a2020;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+  }
+  .btn-clear:hover { background: rgba(224,80,80,0.08); }
+
+  .storage-note {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(139,105,20,0.3);
+    line-height: 1.5;
+  }
+
+  .storage-indicator {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .storage-indicator span { color: var(--gold2); }
+
   /* Modals */
   .modal-overlay {
     display: none;
@@ -483,6 +558,27 @@
   </div>
 </div>
 
+<!-- Storage Options Modal -->
+<div class="modal-overlay" id="storageModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="panel-title">PRESET STORAGE</div>
+    <div class="storage-indicator">ACTIVE STORAGE: <span id="storageModeLabel">localStorage</span></div>
+    <div class="storage-toggle">
+      <button class="storage-toggle-btn" id="btnModeLocal" onclick="setStorageMode('local')">LOCAL STORAGE</button>
+      <button class="storage-toggle-btn" id="btnModeCookie" onclick="setStorageMode('cookie')">COOKIES</button>
+    </div>
+    <div class="storage-clear-row">
+      <button class="btn btn-clear" onclick="clearStorage('local')">CLEAR LOCALSTORAGE</button>
+      <button class="btn btn-clear" onclick="clearStorage('cookie')">CLEAR COOKIES</button>
+    </div>
+    <div class="storage-note">
+      <b style="color:var(--text)">Local Storage</b> — persists until manually cleared. No size limit.<br><br>
+      <b style="color:var(--text)">Cookies</b> — persists for 1 year. Limited to ~4KB (a few presets). Cleared with browser cookies.
+    </div>
+    <button class="btn btn-dim" onclick="closeStorageModal()" style="width:100%;margin-top:14px">CLOSE</button>
+  </div>
+</div>
+
 <!-- Presets -->
 <div class="panel" id="presetsPanel" style="display:none">
   <div class="panel-title">PRESETS</div>
@@ -491,6 +587,10 @@
 
 <h1>MICROSCAPE</h1>
 <p class="subtitle">XP &amp; Item Calculator</p>
+
+<div class="storage-btn-wrap">
+  <button class="btn btn-storage" onclick="openStorageModal()">&#9881; PRESET STORAGE OPTIONS</button>
+</div>
 
 <div class="panel">
   <div class="panel-title">CHARACTER</div>
@@ -541,7 +641,61 @@ let itemCount = 0;
 let chainItemId = null;
 let primaryItemId = null;
 let activePresetId = null;
-let presets = JSON.parse(localStorage.getItem('microscape-presets') || '[]');
+let storageMode = localStorage.getItem('microscape-storage-mode') || 'local';
+let presets = loadPresetsFromStorage();
+
+// ---- Storage Helpers ----
+function loadPresetsFromStorage() {
+  if (storageMode === 'cookie') {
+    const match = document.cookie.match(/(?:^|; )microscape-presets=([^;]*)/);
+    try { return match ? JSON.parse(decodeURIComponent(match[1])) : []; } catch { return []; }
+  }
+  try { return JSON.parse(localStorage.getItem('microscape-presets') || '[]'); } catch { return []; }
+}
+
+function savePresetsToStorage() {
+  if (storageMode === 'cookie') {
+    const val = encodeURIComponent(JSON.stringify(presets));
+    if (val.length > 3800) { alert('Presets are too large for cookie storage. Switch to Local Storage or delete some presets.'); return; }
+    const exp = new Date(); exp.setFullYear(exp.getFullYear() + 1);
+    document.cookie = 'microscape-presets=' + val + ';expires=' + exp.toUTCString() + ';path=/';
+  } else {
+    localStorage.setItem('microscape-presets', JSON.stringify(presets));
+  }
+}
+
+function setStorageMode(mode) {
+  storageMode = mode;
+  localStorage.setItem('microscape-storage-mode', mode);
+  presets = loadPresetsFromStorage();
+  updateStorageUI();
+  renderPresetTabs();
+}
+
+function clearStorage(target) {
+  const label = target === 'local' ? 'Local Storage' : 'Cookies';
+  if (!confirm('Clear all presets from ' + label + '?')) return;
+  if (target === 'local') {
+    localStorage.removeItem('microscape-presets');
+  } else {
+    document.cookie = 'microscape-presets=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+  }
+  if (target === storageMode) { presets = []; renderPresetTabs(); }
+}
+
+function updateStorageUI() {
+  document.getElementById('storageModeLabel').textContent = storageMode === 'cookie' ? 'Cookies' : 'Local Storage';
+  document.getElementById('btnModeLocal').classList.toggle('active', storageMode === 'local');
+  document.getElementById('btnModeCookie').classList.toggle('active', storageMode === 'cookie');
+}
+
+function openStorageModal() {
+  updateStorageUI();
+  document.getElementById('storageModal').classList.add('open');
+}
+function closeStorageModal() { document.getElementById('storageModal').classList.remove('open'); }
+
+document.getElementById('storageModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeStorageModal(); });
 
 // ---- XP Table (Microscape = OSRS formula × 10) ----
 // XP_TABLE[L] = cumulative XP to reach level L (1-indexed, XP_TABLE[1] = 0)
@@ -602,14 +756,14 @@ function confirmSavePreset() {
   state.name = name;
   state.id = Date.now();
   presets.push(state);
-  localStorage.setItem('microscape-presets', JSON.stringify(presets));
+  savePresetsToStorage();
   closeSaveModal();
   renderPresetTabs(state.id);
 }
 
 function deletePreset(id) {
   presets = presets.filter(p => p.id !== id);
-  localStorage.setItem('microscape-presets', JSON.stringify(presets));
+  savePresetsToStorage();
   if (activePresetId === id) activePresetId = null;
   renderPresetTabs();
 }
