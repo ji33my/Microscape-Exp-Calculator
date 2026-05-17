@@ -963,8 +963,8 @@ function openSaveModal() {
   const goal = document.getElementById('goalLevel').value || '?';
   const pName = getPrimaryName();
   document.getElementById('presetNameInput').value = pName
-    ? `${pName} · Lv ${lvl} → ${goal}`
-    : `Lv ${lvl} → ${goal}`;
+    ? `${pName} · Lvl ${lvl} → ${goal}`
+    : `Lvl ${lvl} → ${goal}`;
   document.getElementById('saveModal').classList.add('open');
   setTimeout(() => {
     const inp = document.getElementById('presetNameInput');
@@ -1279,11 +1279,11 @@ function calculate() {
   document.getElementById('summaryBox').innerHTML = `
     <div class="summary-row">
       <span class="summary-label">CURRENT LEVEL</span>
-      <span class="summary-value">Lv ${curLvl} &nbsp;&middot;&nbsp; ${pct.toFixed(2)}% through</span>
+      <span class="summary-value">Lvl ${curLvl} &nbsp;&middot;&nbsp; ${pct.toFixed(2)}% til Lvl ${curLvl + 1}</span>
     </div>
     <div class="summary-row">
       <span class="summary-label">GOAL LEVEL</span>
-      <span class="summary-value">Lv ${goalLvl}</span>
+      <span class="summary-value">Lvl ${goalLvl}</span>
     </div>
     <div class="summary-row">
       <span class="summary-label">XP THIS LEVEL</span>
