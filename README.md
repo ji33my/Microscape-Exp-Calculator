@@ -1,6 +1,6 @@
 # Microscape XP & Item Calculator
 
-A browser-based calculator for planning your training in [Microscape](https://microscape.cc/play/). Enter your current level, goal level, and the items you plan to craft — it tells you exactly how many to make and the total XP contribution of each.
+A browser-based calculator for planning your training in [Microscape](https://microscape.cc/play/). Enter your current level, goal level, and the items you plan to craft or gather — it tells you exactly how many actions to take, the XP contribution of each, and optionally how long it will take.
 
 **[Open Calculator](https://ji33my.github.io/Microscape-Exp-Calculator/microscape_calculator.html)**
 
@@ -14,14 +14,35 @@ This project is completely open — use it, save it, fork it, modify it, do what
 
 ## Features
 
+### General
 - **XP calculation** — accurate XP requirements for any level range using the verified Microscape XP formula
+- **Collapsible panels** — Items and Results panels collapse automatically after calculating to keep things clean
+- **Saved presets** — save your current setup by name and switch between them with one click. Persists across sessions (localStorage or cookies)
+- **XP table** — view cumulative XP and XP-to-next for every level from 1 to 99
+- **Skill item tables** — browse XP and sell price data for Smithing, Cooking, Fletching, Fishing, Mining, Herblaw, Crafting, and Woodcutting. Filter by name
+
+### Crafting Mode
 - **Primary item** — the main thing you're crafting toward your goal
-- **Chain item** — for when your primary item is used as an ingredient in a second craft (e.g. smelt Steel Bars → smith Steel Arrowtips). Supports an optional qty goal if you only need a set number
-- **Items with qty goals** — side items you want a fixed quantity of (e.g. Silver Bars), done first before the primary
+- **Chain item** — for when your primary item is used as an ingredient in a second craft (e.g. smelt Steel Bars → smith Steel Arrowtips). Supports an optional qty goal
+- **Items with qty goals** — side items you want a fixed quantity of (e.g. Silver Bars), calculated first before the primary
 - **Qty owned** — account for stock you already have; the calculator factors it in and adjusts what's left to craft
 - **Material cost** — optional gold cost per craft. Shows total cost and gp/xp across all items
-- **Saved presets** — save your current setup by name and switch between them with one click. Persists across sessions
-- **XP table** — view cumulative XP and XP-to-next for every level from 1 to 99
+
+### Gathering Mode
+- **Gathering item** — the main resource you're collecting (e.g. Willow Logs)
+- **Additional gathering items** — add extra resources with an optional qty goal
+- **Optimize XP Gains** — type a gathering item name and the calculator automatically looks it up in the skill tables, then splits your level range into segments using the best available item at each level (e.g. Oak Logs from 25→30, Willow Logs from 30→45)
+
+### Time Estimate
+- Enable time tracking to see how long your grind will take
+- Input **seconds between items** for your activity
+- **Shell Pockets** (+2 slots) and **Gilded Pockets** (+3 slots) checkboxes adjust loot bag size (base 25) for more accurate banking trip calculations
+- Banking time fixed at 46 seconds per trip
+- Time displays in seconds, minutes, hours, days, or years as appropriate
+- Each result card shows the estimated time for that specific portion of XP
+- Note: not accurate for Chill Spot banking
+
+---
 
 ## XP Formula
 
@@ -31,12 +52,14 @@ $$\text{TotalXP}(L) = \left\lfloor \frac{\sum_{n=1}^{L-1} \left\lfloor 10(n + 30
 
 This gives the cumulative XP required to reach level `L`. XP needed for a given level is `TotalXP(L+1) - TotalXP(L)`.
 
+---
+
 ## Usage
 
-1. Enter your **current level**, **goal level**, and **% through your current level** (shown in-game on the skill panel)
-2. Fill in your **primary item** — the item you'll be mass-crafting for XP
-3. Optionally add a **chain item** if your primary is consumed as an ingredient in a follow-up craft
-4. Optionally add **items with qty goals** for any fixed-quantity crafts you want to do first
+1. Select **Crafting** or **Gathering** mode
+2. Enter your **current level**, **goal level**, and **% to next level** (shown in-game on the skill panel)
+3. Fill in your primary item and any additional items
+4. Optionally enable **time estimate** and enter seconds per action
 5. Hit **Calculate**
 
-Results show exactly how many of each item to craft, XP contributed, and total material cost if prices are entered.
+Results show how many of each item to craft or gather, XP contributed per item, and estimated time if enabled.
