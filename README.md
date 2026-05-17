@@ -6,6 +6,12 @@ A browser-based calculator for planning your training in [Microscape](https://ww
 
 ---
 
+## Free to Use
+
+This project is completely open — use it, save it, fork it, modify it, do whatever you want with it. No credit required. If you want to host your own version, customize it for a different game, or strip it down for something else entirely, go for it. The whole thing is a single self-contained HTML file with no dependencies beyond a Google Fonts import, so it works offline too — just save the page and open it in any browser.
+
+---
+
 ## Features
 
 - **XP calculation** — accurate XP requirements for any level range using the verified Microscape XP formula
