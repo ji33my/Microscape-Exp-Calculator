@@ -189,6 +189,39 @@
     opacity: 1;
   }
 
+  .mode-toggle {
+    display: flex;
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    width: fit-content;
+  }
+  .mode-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 22px;
+    border: none;
+    cursor: pointer;
+    background: var(--panel2);
+    color: var(--text-dim);
+    transition: all 0.1s;
+  }
+  .mode-btn + .mode-btn { border-left: 1px solid var(--border); }
+  .mode-btn.active { background: var(--border-light); color: var(--gold); }
+  .mode-btn:hover:not(.active) { color: var(--text); }
+
+  /* Gathering mode — hide crafting-only elements */
+  #itemsPanel.mode-gathering #btnChain,
+  #itemsPanel.mode-gathering .btn-add { display: none; }
+  #itemsPanel.mode-gathering .field-qty-owned,
+  #itemsPanel.mode-gathering .field-cost-craft { display: none; }
+  #itemsPanel.mode-gathering .chain-connector,
+  #itemsPanel.mode-gathering .is-chain { display: none; }
+
   .time-section {
     margin-top: 14px;
     padding-top: 14px;
@@ -306,6 +339,15 @@
     border-color: var(--green-dim);
   }
   .btn-add:hover { background: rgba(90,183,106,0.08); }
+
+  .btn-gather {
+    font-size: 14px;
+    padding: 7px 16px;
+    color: var(--green);
+    border-color: var(--green-dim);
+    background: transparent;
+  }
+  .btn-gather:hover { background: rgba(90,183,106,0.08); }
 
   .btn-chain {
     font-size: 14px;
@@ -871,6 +913,17 @@
       </div>
     </div>
   </div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="modeCrafting" onclick="switchMode('crafting')">Crafting</button>
+    <button class="mode-btn" id="modeGathering" onclick="switchMode('gathering')">Gathering</button>
+  </div>
+  <div id="gatherOptimizeWrap" style="display:none;margin-top:10px">
+    <label class="check-label">
+      <input type="checkbox" id="optimizeXP">
+      <span class="check-box"></span>
+      <span>OPTIMIZE XP GAINS FOR MULTIPLE GATHERING ITEMS</span>
+    </label>
+  </div>
   <div class="time-section">
     <label class="check-label">
       <input type="checkbox" id="enableTime" onchange="toggleTimeOptions()">
@@ -889,7 +942,12 @@
             <span class="check-box"></span>
             <span>SHELL POCKETS</span>
           </label>
-          <div class="time-note">Loot bag: 25 → 27 slots</div>
+          <label class="check-label" style="margin-top:6px">
+            <input type="checkbox" id="gildedPockets">
+            <span class="check-box"></span>
+            <span>GILDED POCKETS</span>
+          </label>
+          <div class="time-note">Shell +2 · Gilded +3 slots</div>
         </div>
       </div>
       <div class="time-note" style="margin-top:10px">⚠ Time calculation is currently not accurate for Chill Spot banking</div>
@@ -897,13 +955,14 @@
   </div>
 </div>
 
-<div class="panel">
-  <div id="itemsTitle" class="panel-title collapsible" onclick="togglePanel('itemsBody', this)">ITEMS TO CRAFT/GATHER <span class="toggle-icon">▼</span></div>
+<div class="panel" id="itemsPanel">
+  <div id="itemsTitle" class="panel-title collapsible" onclick="togglePanel('itemsBody', this)"><span id="itemsTitleText">ITEMS TO CRAFT</span> <span class="toggle-icon">▼</span></div>
   <div id="itemsBody" class="collapsible-body">
     <div id="itemsList"></div>
     <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-chain" id="btnChain" onclick="addChainItem()">+ ADD CHAIN ITEM</button>
       <button class="btn btn-add" onclick="addSecondary()">+ ADD ITEM WITH QTY GOAL</button>
+      <button class="btn btn-gather" id="btnGather" onclick="addGatherItem()" style="display:none">+ ADDITIONAL GATHERING ITEM</button>
     </div>
   </div>
 </div>
@@ -932,6 +991,112 @@ function toggleTimeOptions() {
     document.getElementById('enableTime').checked ? '' : 'none';
 }
 
+let currentMode = 'crafting';
+const modeStates = { crafting: null, gathering: null };
+
+function restoreItems(items) {
+  document.getElementById('itemsList').innerHTML = '';
+  itemCount = 0; chainItemId = null; primaryItemId = null;
+  const btn = document.getElementById('btnChain');
+  btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
+
+  items.forEach(item => {
+    if (item.type === 'primary') {
+      addPrimary();
+      const id = primaryItemId;
+      document.getElementById('iname-' + id).value = item.name;
+      document.getElementById('ixp-'   + id).value = item.xpPer;
+      document.getElementById('iqty-'  + id).value = item.qtyOwned || '';
+      document.getElementById('icost-' + id).value = item.cost     || '';
+    } else if (item.type === 'chain') {
+      addChainItem();
+      const id = chainItemId;
+      document.getElementById('iname-'       + id).value = item.name;
+      document.getElementById('ixp-'         + id).value = item.xpPer;
+      document.getElementById('isp-ratio-'   + id).value = item.ratio     || '';
+      document.getElementById('ichain-goal-' + id).value = item.chainGoal || '';
+    } else if (item.type === 'gather') {
+      addGatherItem();
+      const id = itemCount;
+      document.getElementById('iname-' + id).value = item.name;
+      document.getElementById('ixp-'   + id).value = item.xpPer;
+      document.getElementById('igoal-' + id).value = item.qtyGoal || '';
+    } else {
+      addSecondary();
+      const id = itemCount;
+      document.getElementById('iname-' + id).value = item.name;
+      document.getElementById('ixp-'   + id).value = item.xpPer;
+      document.getElementById('iqty-'  + id).value = item.qtyOwned || '';
+      document.getElementById('igoal-' + id).value = item.qtyGoal  || '';
+      document.getElementById('icost-' + id).value = item.cost     || '';
+    }
+  });
+  updateChainLabels();
+}
+
+function switchMode(mode, fromPresetLoad = false) {
+  if (!fromPresetLoad) {
+    modeStates[currentMode] = captureFormState().items;
+  }
+
+  currentMode = mode;
+  document.getElementById('modeCrafting').classList.toggle('active', mode === 'crafting');
+  document.getElementById('modeGathering').classList.toggle('active', mode === 'gathering');
+  document.getElementById('itemsPanel').classList.toggle('mode-gathering', mode === 'gathering');
+  document.getElementById('btnGather').style.display          = mode === 'gathering' ? '' : 'none';
+  document.getElementById('gatherOptimizeWrap').style.display = mode === 'gathering' ? '' : 'none';
+  document.getElementById('itemsTitleText').textContent =
+    mode === 'gathering' ? 'ITEMS TO GATHER' : 'ITEMS TO CRAFT';
+
+  if (!fromPresetLoad) {
+    if (modeStates[mode]) {
+      restoreItems(modeStates[mode]);
+    } else {
+      if (chainItemId !== null) removeChainItem(chainItemId);
+      document.querySelectorAll('.item-block:not(.is-primary)').forEach(el => el.remove());
+    }
+  }
+
+  const nameInput = document.getElementById('iname-' + primaryItemId);
+  const xpInput   = document.getElementById('ixp-'   + primaryItemId);
+  const xpLabel   = document.getElementById('primary-xp-label');
+  if (nameInput) nameInput.placeholder = mode === 'gathering' ? 'e.g. Willow Logs' : 'e.g. Steel Bar';
+  if (xpInput)   xpInput.placeholder   = mode === 'gathering' ? '50' : '17';
+  if (xpLabel)   xpLabel.textContent   = mode === 'gathering' ? 'XP PER GATHER' : 'XP PER CRAFT';
+
+  const typeTag = document.querySelector('.item-block.is-primary .item-type-tag');
+  if (typeTag) typeTag.textContent = mode === 'gathering' ? 'GATHERING ITEM' : 'PRIMARY ITEM';
+}
+
+function addGatherItem() {
+  itemCount++;
+  const id = itemCount;
+  const div = document.createElement('div');
+  div.className = 'item-block is-capped';
+  div.id = 'item-' + id;
+  div.dataset.itemId = id;
+  div.dataset.type = 'gather';
+  div.innerHTML = `
+    <button class="remove-btn" onclick="removeItem(${id})">&#x2715;</button>
+    <div class="item-type-tag capped">ADDITIONAL GATHERING ITEM</div>
+    <div class="row-2">
+      <div>
+        <label>ITEM NAME</label>
+        <input type="text" id="iname-${id}" placeholder="e.g. Oak Logs">
+      </div>
+      <div>
+        <label>XP PER GATHER</label>
+        <input type="number" id="ixp-${id}" min="1" placeholder="e.g. 30">
+      </div>
+    </div>
+    <div style="margin-top:8px;max-width:260px">
+      <label>QTY GOAL <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
+      <input type="number" id="igoal-${id}" min="0" placeholder="e.g. 500">
+    </div>
+  `;
+  document.getElementById('itemsList').appendChild(div);
+}
+
 function togglePanel(bodyId, titleEl) {
   const body = document.getElementById(bodyId);
   const isCollapsed = body.classList.contains('collapsed');
@@ -940,6 +1105,8 @@ function togglePanel(bodyId, titleEl) {
 }
 
 function clearAll() {
+  modeStates.crafting = null;
+  modeStates.gathering = null;
   document.getElementById('currentLevel').value = '';
   document.getElementById('goalLevel').value    = '';
   document.getElementById('currentPct').value   = '';
@@ -957,10 +1124,12 @@ function clearAll() {
     itemsTitle.classList.remove('collapsed');
   }
 
-  document.getElementById('enableTime').checked  = false;
-  document.getElementById('secsPerItem').value   = '';
-  document.getElementById('shellPockets').checked = false;
+  document.getElementById('enableTime').checked    = false;
+  document.getElementById('secsPerItem').value     = '';
+  document.getElementById('shellPockets').checked  = false;
+  document.getElementById('gildedPockets').checked = false;
   toggleTimeOptions();
+  switchMode(currentMode, true);
 
   document.getElementById('results').classList.remove('visible');
   activePresetId = null;
@@ -1136,6 +1305,8 @@ function captureFormState() {
     } else if (type === 'chain') {
       item.ratio     = document.getElementById('isp-ratio-'   + id)?.value || '';
       item.chainGoal = document.getElementById('ichain-goal-' + id)?.value || '';
+    } else if (type === 'gather') {
+      item.qtyGoal = document.getElementById('igoal-' + id)?.value || '';
     } else {
       item.qtyOwned = document.getElementById('iqty-'  + id)?.value || '';
       item.qtyGoal  = document.getElementById('igoal-' + id)?.value || '';
@@ -1146,14 +1317,18 @@ function captureFormState() {
     currentLevel: document.getElementById('currentLevel').value,
     goalLevel:    document.getElementById('goalLevel').value,
     currentPct:   document.getElementById('currentPct').value,
-    enableTime:   document.getElementById('enableTime').checked,
-    secsPerItem:  document.getElementById('secsPerItem').value,
-    shellPockets: document.getElementById('shellPockets').checked,
+    enableTime:    document.getElementById('enableTime').checked,
+    secsPerItem:   document.getElementById('secsPerItem').value,
+    shellPockets:  document.getElementById('shellPockets').checked,
+    gildedPockets: document.getElementById('gildedPockets').checked,
+    mode:         currentMode,
     items
   };
 }
 
 function loadPresetData(preset) {
+  modeStates.crafting = null;
+  modeStates.gathering = null;
   document.getElementById('itemsList').innerHTML = '';
   itemCount = 0; chainItemId = null; primaryItemId = null;
   const btn = document.getElementById('btnChain');
@@ -1162,10 +1337,12 @@ function loadPresetData(preset) {
   document.getElementById('currentLevel').value  = preset.currentLevel;
   document.getElementById('goalLevel').value     = preset.goalLevel;
   document.getElementById('currentPct').value    = preset.currentPct;
-  document.getElementById('enableTime').checked  = !!preset.enableTime;
-  document.getElementById('secsPerItem').value   = preset.secsPerItem || '';
-  document.getElementById('shellPockets').checked = !!preset.shellPockets;
+  document.getElementById('enableTime').checked    = !!preset.enableTime;
+  document.getElementById('secsPerItem').value     = preset.secsPerItem || '';
+  document.getElementById('shellPockets').checked  = !!preset.shellPockets;
+  document.getElementById('gildedPockets').checked = !!preset.gildedPockets;
   toggleTimeOptions();
+  switchMode(preset.mode || 'crafting', true);
 
   preset.items.forEach(item => {
     if (item.type === 'primary') {
@@ -1184,6 +1361,12 @@ function loadPresetData(preset) {
       document.getElementById('ichain-goal-'  + id).value = item.chainGoal || '';
       const chainCostEl = document.getElementById('icost-' + id);
       if (chainCostEl) chainCostEl.value = item.cost;
+    } else if (item.type === 'gather') {
+      addGatherItem();
+      const id = itemCount;
+      document.getElementById('iname-' + id).value = item.name;
+      document.getElementById('ixp-'   + id).value = item.xpPer;
+      document.getElementById('igoal-' + id).value = item.qtyGoal || '';
     } else {
       addSecondary();
       const id = itemCount;
@@ -1245,23 +1428,23 @@ function addPrimary() {
   div.dataset.itemId = id;
   div.dataset.type = 'primary';
   div.innerHTML = `
-    <div class="item-type-tag primary">PRIMARY ITEM</div>
+    <div class="item-type-tag primary">${currentMode === 'gathering' ? 'GATHERING ITEM' : 'PRIMARY ITEM'}</div>
     <div class="row-2">
       <div>
         <label>ITEM NAME</label>
-        <input type="text" id="iname-${id}" placeholder="e.g. Steel Bar" oninput="updateChainLabels()">
+        <input type="text" id="iname-${id}" placeholder="${currentMode === 'gathering' ? 'e.g. Willow Logs' : 'e.g. Steel Bar'}" oninput="updateChainLabels()">
       </div>
       <div>
-        <label>XP PER CRAFT</label>
-        <input type="number" id="ixp-${id}" min="1" placeholder="17">
+        <label id="primary-xp-label">${currentMode === 'gathering' ? 'XP PER GATHER' : 'XP PER CRAFT'}</label>
+        <input type="number" id="ixp-${id}" min="1" placeholder="${currentMode === 'gathering' ? '50' : '17'}">
       </div>
     </div>
     <div class="row-2b">
-      <div>
+      <div class="field-qty-owned">
         <label>QTY OWNED <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
         <input type="number" id="iqty-${id}" min="0" placeholder="0">
       </div>
-      <div>
+      <div class="field-cost-craft">
         <label>COST PER CRAFT <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
         <input type="number" id="icost-${id}" min="0" placeholder="0">
       </div>
@@ -1372,6 +1555,81 @@ function removeItem(id) {
   document.getElementById('item-' + id)?.remove();
 }
 
+function formatTime(secs) {
+  if (secs <= 0) return '0s';
+  const y = Math.floor(secs / 31536000);
+  const d = Math.floor((secs % 31536000) / 86400);
+  const h = Math.floor((secs % 86400) / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (y > 0) return `${y}y ${d}d ${h}h ${m}m`;
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+// ---- Gathering Optimization ----
+function findItemInSkillData(query) {
+  const q = query.toLowerCase().trim();
+  if (!q) return null;
+  for (const [skill, items] of Object.entries(SKILL_DATA)) {
+    // Prefer starts-with match, fall back to contains
+    const exact = items.find(r => r.item.toLowerCase().startsWith(q));
+    if (exact) return { skill, item: exact };
+    const partial = items.find(r => r.item.toLowerCase().includes(q));
+    if (partial) return { skill, item: partial };
+  }
+  return null;
+}
+
+function calcSegmentXP(fromLvl, fromPct, toLvl) {
+  const lvlXP    = xpForLevel(fromLvl);
+  const earned   = Math.round((fromPct / 100) * lvlXP);
+  let xp = lvlXP - earned;
+  for (let l = fromLvl + 1; l < toLvl; l++) xp += xpForLevel(l);
+  return xp;
+}
+
+function buildOptimizedResults(skillName, curLvl, pct, goalLvl) {
+  const skillItems = SKILL_DATA[skillName]
+    .filter(r => r.xp !== null && r.lvl <= goalLvl)
+    .sort((a, b) => a.lvl - b.lvl);
+  if (!skillItems.length) return null;
+
+  // Level breakpoints where a new item unlocks between curLvl and goalLvl
+  const breakpoints = skillItems
+    .map(r => r.lvl)
+    .filter(lvl => lvl > curLvl && lvl < goalLvl)
+    .concat([goalLvl]);
+
+  const segments = [];
+  let segFrom = curLvl;
+  let segPct  = pct;
+
+  for (const breakLvl of breakpoints) {
+    // Highest available item at segFrom
+    const item = [...skillItems].reverse().find(r => r.lvl <= segFrom);
+    if (!item) { segFrom = breakLvl; segPct = 0; continue; }
+
+    const xpSeg = calcSegmentXP(segFrom, segPct, breakLvl);
+    if (xpSeg > 0) {
+      segments.push({
+        type: 'optimized',
+        item: { name: item.item, xpPer: item.xp, cost: 0, qtyOwned: 0 },
+        craftCount: Math.ceil(xpSeg / item.xp),
+        xpContributed: xpSeg,
+        ownedCoversGoal: false,
+        fromLvl: segFrom,
+        toLvl: breakLvl
+      });
+    }
+    segFrom = breakLvl;
+    segPct  = 0;
+  }
+  return segments.length ? segments : null;
+}
+
 // ---- Calculate ----
 function calculate() {
   const curLvl  = parseInt(document.getElementById('currentLevel').value);
@@ -1392,19 +1650,24 @@ function calculate() {
       <span class="summary-value">Lvl ${curLvl} &nbsp;&middot;&nbsp; ${pct.toFixed(2)}% til Lvl ${curLvl + 1}</span>
     </div>
     <div class="summary-row">
-      <span class="summary-label">GOAL LEVEL</span>
-      <span class="summary-value">Lvl ${goalLvl}</span>
-    </div>
-    <div class="summary-row">
       <span class="summary-label">XP THIS LEVEL</span>
       <span class="summary-value">${xpEarnedThisLevel.toLocaleString()} / ${levelXP.toLocaleString()}</span>
     </div>
     <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>
     <div class="summary-row">
+      <span class="summary-label">GOAL LEVEL</span>
+      <span class="summary-value">Lvl ${goalLvl}</span>
+    </div>
+    <div class="summary-row">
       <span class="summary-label">TOTAL XP NEEDED</span>
       <span class="summary-value big">${xpNeeded.toLocaleString()} XP</span>
     </div>
   `;
+
+  const timeEnabled = document.getElementById('enableTime').checked;
+  const secsPerItem = timeEnabled ? (parseFloat(document.getElementById('secsPerItem').value) || 0) : 0;
+  const bagSize     = (document.getElementById('shellPockets').checked ? 2 : 0) +
+                      (document.getElementById('gildedPockets').checked ? 3 : 0) + 25;
 
   const warnEl    = document.getElementById('warningBox');
   const costEl    = document.getElementById('costSummary');
@@ -1431,6 +1694,12 @@ function calculate() {
       const chainGoalV  = document.getElementById('ichain-goal-' + id)?.value;
       const qtyGoal     = (chainGoalV && !isNaN(parseInt(chainGoalV))) ? parseInt(chainGoalV) : null;
       secondPrimaryItem = { name, xpPer, qtyOwned: 0, ratio, qtyGoal, cost };
+    } else if (type === 'gather') {
+      const goalV   = document.getElementById('igoal-' + id)?.value;
+      const qtyGoal = parseInt(goalV);
+      if (goalV && !isNaN(qtyGoal) && qtyGoal > 0) {
+        cappedItems.push({ name, xpPer, qtyOwned: 0, qtyGoal, cost: 0 });
+      }
     } else {
       const goalV   = document.getElementById('igoal-' + id)?.value;
       const qtyGoal = parseInt(goalV);
@@ -1515,15 +1784,32 @@ function calculate() {
       isCapped: sp.qtyGoal !== null, qtyGoal: sp.qtyGoal
     });
   } else {
-    const xpFromOwned    = Math.min(primaryItem.qtyOwned * primaryItem.xpPer, xpRemaining);
-    const xpAfterOwned   = Math.max(0, xpRemaining - xpFromOwned);
-    const primaryCraftCount = Math.ceil(xpAfterOwned / primaryItem.xpPer);
-    results.push({
-      type: 'primary', item: primaryItem,
-      craftCount: primaryCraftCount,
-      xpContributed: xpRemaining,
-      ownedCoversGoal: xpFromOwned >= xpRemaining
-    });
+    const optimizeChecked = currentMode === 'gathering' && document.getElementById('optimizeXP')?.checked;
+    let optimized = false;
+    if (optimizeChecked) {
+      const match = findItemInSkillData(primaryItem.name);
+      if (match) {
+        const segs = buildOptimizedResults(match.skill, curLvl, pct, goalLvl);
+        if (segs) {
+          segs.forEach(s => results.push(s));
+          optimized = true;
+        }
+      }
+      if (!optimized) {
+        warnEl.innerHTML += `<div class="warning-box">&#9888; Not in skill table list to optimize.</div>`;
+      }
+    }
+    if (!optimized) {
+      const xpFromOwned    = Math.min(primaryItem.qtyOwned * primaryItem.xpPer, xpRemaining);
+      const xpAfterOwned   = Math.max(0, xpRemaining - xpFromOwned);
+      const primaryCraftCount = Math.ceil(xpAfterOwned / primaryItem.xpPer);
+      results.push({
+        type: 'primary', item: primaryItem,
+        craftCount: primaryCraftCount,
+        xpContributed: xpRemaining,
+        ownedCoversGoal: xpFromOwned >= xpRemaining
+      });
+    }
   }
 
   // Append capped items after primary/chain for display
@@ -1555,6 +1841,9 @@ function calculate() {
     if (r.ownedCoversGoal) {
       headerClass = 'done';
       headerText  = r.type === 'capped' ? 'COMPLETE — QTY GOAL MET' : 'COMPLETE — OWNED QTY COVERS THIS';
+    } else if (r.type === 'optimized') {
+      headerClass = 'primary';
+      headerText  = `GATHER · Lvl ${r.fromLvl} → ${r.toLvl}`;
     } else if (r.type === 'capped') {
       headerClass = 'capped';
       headerText  = `CAPPED AT ${r.item.qtyGoal.toLocaleString()}`;
@@ -1568,7 +1857,11 @@ function calculate() {
         : `CHAIN — consumes ${r.primaryName} as ingredient (${r.ratio} per craft)`;
     }
 
-    const metaParts = [`${r.item.xpPer.toLocaleString()} XP each`];
+    const showSegTime = timeEnabled && secsPerItem > 0 && !r.ownedCoversGoal && r.craftCount > 0;
+    const segTimeStr  = showSegTime
+      ? formatTime(Math.round(r.craftCount * secsPerItem + Math.floor(r.craftCount / bagSize) * 46))
+      : null;
+    const metaParts = [segTimeStr ?? `${r.item.xpPer.toLocaleString()} XP each`];
     if (r.ownedCoversGoal) {
       metaParts.push(`${r.item.qtyOwned.toLocaleString()} owned covers goal`);
     } else if (r.item.qtyOwned > 0 && r.type !== 'secondprimary' && r.type !== 'primary') {
@@ -1581,7 +1874,7 @@ function calculate() {
 
     const rightContent = r.ownedCoversGoal
       ? `<div class="result-done-text">DONE</div>`
-      : `<div class="result-xp-total" style="color:var(--accent)">${r.craftCount.toLocaleString()}</div><div class="result-xp-label">to craft/gather</div>`;
+      : `<div class="result-xp-total" style="color:var(--accent)">${r.craftCount.toLocaleString()}</div><div class="result-xp-label">${currentMode === 'gathering' ? 'to gather' : 'to craft'}</div>`;
 
     card.innerHTML = `
       <div class="result-card-header ${headerClass}">${headerText}</div>
@@ -1600,21 +1893,15 @@ function calculate() {
     resultsEl.appendChild(card);
   });
 
-  if (document.getElementById('enableTime').checked) {
-    const secsPerItem = parseFloat(document.getElementById('secsPerItem').value);
-    if (secsPerItem > 0) {
-      const bagSize    = document.getElementById('shellPockets').checked ? 27 : 25;
+  if (timeEnabled && secsPerItem > 0) {
+    {
       const totalCrafts = results.reduce((s, r) => s + (r.ownedCoversGoal ? 0 : r.craftCount), 0);
       const bankTrips   = Math.floor(totalCrafts / bagSize);
       const totalSecs   = Math.round(totalCrafts * secsPerItem + bankTrips * 46);
-      const h = Math.floor(totalSecs / 3600);
-      const m = Math.floor((totalSecs % 3600) / 60);
-      const s = totalSecs % 60;
-      const timeStr = h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
       document.getElementById('summaryBox').innerHTML += `
         <div class="summary-row">
           <span class="summary-label">ESTIMATED TIME</span>
-          <span class="summary-value">${timeStr}</span>
+          <span class="summary-value">${formatTime(totalSecs)}</span>
         </div>
         <div class="summary-row">
           <span class="summary-label">BANK TRIPS</span>
@@ -1820,6 +2107,14 @@ const SKILL_DATA = {
     { item: 'String Ruby Amulet',       xp: null, lvl: 50, sell: 188 },
     { item: 'String Diamond Amulet',    xp: null, lvl: 70, sell: 351 },
     { item: 'String Dragonstone Amulet',xp: null, lvl: 80, sell: 776 },
+  ],
+  Woodcutting: [
+    { item: 'Logs',        xp: 12,  lvl: 1,  sell: null },
+    { item: 'Oak Logs',    xp: 30,  lvl: 15, sell: null },
+    { item: 'Willow Logs', xp: 50,  lvl: 30, sell: null },
+    { item: 'Maple Logs',  xp: 100, lvl: 45, sell: null },
+    { item: 'Yew Logs',    xp: 175, lvl: 60, sell: null },
+    { item: 'Magic Logs',  xp: 250, lvl: 75, sell: null },
   ],
 };
 
