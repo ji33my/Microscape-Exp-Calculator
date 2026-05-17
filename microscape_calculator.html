@@ -932,17 +932,26 @@
     </label>
     <div id="timeOptions" style="display:none;margin-top:12px">
       <div class="row-2b">
-        <div>
-          <label>SECONDS BETWEEN ITEMS</label>
-          <input type="number" id="secsPerItem" min="0.1" step="0.1" placeholder="e.g. 16">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div>
+            <label>SECONDS BETWEEN ITEMS</label>
+            <input type="number" id="secsPerItem" min="0.1" step="0.1" placeholder="e.g. 16">
+          </div>
+          <div>
+            <label>DOUBLE UP CHANCE <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
+            <div class="pct-wrap">
+              <input type="number" id="doubleUpChance" min="0" max="100" step="0.1" placeholder="0">
+              <span class="pct-suffix">%</span>
+            </div>
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:4px">
+        <div style="display:flex;flex-direction:column;justify-content:center;gap:8px">
           <label class="check-label">
             <input type="checkbox" id="shellPockets">
             <span class="check-box"></span>
             <span>SHELL POCKETS</span>
           </label>
-          <label class="check-label" style="margin-top:6px">
+          <label class="check-label">
             <input type="checkbox" id="gildedPockets">
             <span class="check-box"></span>
             <span>GILDED POCKETS</span>
@@ -1126,6 +1135,7 @@ function clearAll() {
 
   document.getElementById('enableTime').checked    = false;
   document.getElementById('secsPerItem').value     = '';
+  document.getElementById('doubleUpChance').value  = '';
   document.getElementById('shellPockets').checked  = false;
   document.getElementById('gildedPockets').checked = false;
   toggleTimeOptions();
@@ -1319,6 +1329,7 @@ function captureFormState() {
     currentPct:   document.getElementById('currentPct').value,
     enableTime:    document.getElementById('enableTime').checked,
     secsPerItem:   document.getElementById('secsPerItem').value,
+    doubleUp:      document.getElementById('doubleUpChance').value,
     shellPockets:  document.getElementById('shellPockets').checked,
     gildedPockets: document.getElementById('gildedPockets').checked,
     mode:         currentMode,
@@ -1339,6 +1350,7 @@ function loadPresetData(preset) {
   document.getElementById('currentPct').value    = preset.currentPct;
   document.getElementById('enableTime').checked    = !!preset.enableTime;
   document.getElementById('secsPerItem').value     = preset.secsPerItem || '';
+  document.getElementById('doubleUpChance').value  = preset.doubleUp    || '';
   document.getElementById('shellPockets').checked  = !!preset.shellPockets;
   document.getElementById('gildedPockets').checked = !!preset.gildedPockets;
   toggleTimeOptions();
@@ -1664,10 +1676,12 @@ function calculate() {
     </div>
   `;
 
-  const timeEnabled = document.getElementById('enableTime').checked;
-  const secsPerItem = timeEnabled ? (parseFloat(document.getElementById('secsPerItem').value) || 0) : 0;
-  const bagSize     = (document.getElementById('shellPockets').checked ? 2 : 0) +
-                      (document.getElementById('gildedPockets').checked ? 3 : 0) + 25;
+  const timeEnabled    = document.getElementById('enableTime').checked;
+  const secsPerItem    = timeEnabled ? (parseFloat(document.getElementById('secsPerItem').value)    || 0) : 0;
+  const doubleUpChance = timeEnabled ? (parseFloat(document.getElementById('doubleUpChance').value) || 0) : 0;
+  const doubleUpFactor = 1 - doubleUpChance / 100;
+  const bagSize        = (document.getElementById('shellPockets').checked  ? 2 : 0) +
+                         (document.getElementById('gildedPockets').checked ? 3 : 0) + 25;
 
   const warnEl    = document.getElementById('warningBox');
   const costEl    = document.getElementById('costSummary');
@@ -1858,8 +1872,9 @@ function calculate() {
     }
 
     const showSegTime = timeEnabled && secsPerItem > 0 && !r.ownedCoversGoal && r.craftCount > 0;
+    const effectiveCount = r.craftCount * doubleUpFactor;
     const segTimeStr  = showSegTime
-      ? formatTime(Math.round(r.craftCount * secsPerItem + Math.floor(r.craftCount / bagSize) * 46))
+      ? formatTime(Math.round(effectiveCount * secsPerItem + Math.floor(r.craftCount / bagSize) * 46))
       : null;
     const metaParts = [segTimeStr ?? `${r.item.xpPer.toLocaleString()} XP each`];
     if (r.ownedCoversGoal) {
@@ -1895,9 +1910,9 @@ function calculate() {
 
   if (timeEnabled && secsPerItem > 0) {
     {
-      const totalCrafts = results.reduce((s, r) => s + (r.ownedCoversGoal ? 0 : r.craftCount), 0);
-      const bankTrips   = Math.floor(totalCrafts / bagSize);
-      const totalSecs   = Math.round(totalCrafts * secsPerItem + bankTrips * 46);
+      const totalCrafts    = results.reduce((s, r) => s + (r.ownedCoversGoal ? 0 : r.craftCount), 0);
+      const bankTrips      = Math.floor(totalCrafts / bagSize);
+      const totalSecs      = Math.round(totalCrafts * doubleUpFactor * secsPerItem + bankTrips * 46);
       document.getElementById('summaryBox').innerHTML += `
         <div class="summary-row">
           <span class="summary-label">ESTIMATED TIME</span>
