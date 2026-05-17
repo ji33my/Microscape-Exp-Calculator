@@ -1130,6 +1130,21 @@ function switchMode(mode, fromPresetLoad = false) {
     } else {
       if (chainItemId !== null) removeChainItem(chainItemId);
       document.querySelectorAll('.item-block:not(.is-primary)').forEach(el => el.remove());
+      // Re-render primary item so layout matches the new mode (gathering vs crafting)
+      const savedName = document.getElementById('iname-' + primaryItemId)?.value || '';
+      const savedXp   = document.getElementById('ixp-'   + primaryItemId)?.value || '';
+      const savedQty  = document.getElementById('iqty-'  + primaryItemId)?.value || '';
+      const savedCost = document.getElementById('icost-' + primaryItemId)?.value || '';
+      const savedSecs = document.getElementById('isecs-' + primaryItemId)?.value || '';
+      document.getElementById('item-' + primaryItemId)?.remove();
+      primaryItemId = null; itemCount--;
+      addPrimary();
+      document.getElementById('iname-' + primaryItemId).value = savedName;
+      document.getElementById('ixp-'   + primaryItemId).value = savedXp;
+      document.getElementById('iqty-'  + primaryItemId).value = savedQty;
+      document.getElementById('icost-' + primaryItemId).value = savedCost;
+      const newSecs = document.getElementById('isecs-' + primaryItemId);
+      if (newSecs) newSecs.value = savedSecs;
     }
   }
 
