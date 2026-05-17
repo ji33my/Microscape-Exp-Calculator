@@ -1447,7 +1447,13 @@ function calculate() {
 
   document.getElementById('results').classList.add('visible');
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
+
+  const itemsBody = document.getElementById('itemsBody');
+  const itemsTitle = document.querySelector('.panel-title.collapsible[onclick*="itemsBody"]');
+  if (!itemsBody.classList.contains('collapsed')) {
+    itemsBody.classList.add('collapsed');
+    itemsTitle.classList.add('collapsed');
+  }
 
 // ---- Skill Data ----
 const SKILL_DATA = {
