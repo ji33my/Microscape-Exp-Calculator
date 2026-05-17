@@ -1,6 +1,6 @@
 # Microscape XP & Item Calculator
 
-A browser-based calculator for planning your training in [Microscape](https://www.microscape.com). Enter your current level, goal level, and the items you plan to craft — it tells you exactly how many to make and the total XP contribution of each.
+A browser-based calculator for planning your training in [Microscape](https://microscape.cc/play/). Enter your current level, goal level, and the items you plan to craft — it tells you exactly how many to make and the total XP contribution of each.
 
 **[Open Calculator](https://ji33my.github.io/Microscape-Exp-Calculator/microscape_calculator.html)**
 
