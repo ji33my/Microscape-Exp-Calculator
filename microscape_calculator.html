@@ -1339,15 +1339,16 @@ function calculate() {
   }
 
   const results = [];
+  const cappedResults = [];
   let xpRemaining = xpNeeded;
 
-  // Capped items first
+  // Capped items calculated first (XP order), displayed last
   cappedItems.forEach(item => {
     const ownedCoversGoal = item.qtyOwned >= item.qtyGoal;
     const craftCount      = ownedCoversGoal ? 0 : item.qtyGoal - item.qtyOwned;
     const xpContributed   = Math.min(item.qtyGoal * item.xpPer, xpRemaining);
     xpRemaining = Math.max(0, xpRemaining - xpContributed);
-    results.push({ type: 'capped', item, craftCount, xpContributed, ownedCoversGoal });
+    cappedResults.push({ type: 'capped', item, craftCount, xpContributed, ownedCoversGoal });
   });
 
   // Primary + optional chain
@@ -1414,6 +1415,9 @@ function calculate() {
       ownedCoversGoal: xpFromOwned >= xpRemaining
     });
   }
+
+  // Append capped items after primary/chain for display
+  cappedResults.forEach(r => results.push(r));
 
   // Total cost
   let totalCost = 0;
