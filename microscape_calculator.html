@@ -1455,38 +1455,31 @@ function calculate() {
     }
 
     const metaParts = [`${r.item.xpPer.toLocaleString()} XP each`];
-    let actionLine;
-
     if (r.ownedCoversGoal) {
-      actionLine = `<span class="result-done-text">DONE</span>`;
       metaParts.push(`${r.item.qtyOwned.toLocaleString()} owned covers goal`);
-    } else {
-      actionLine = `Craft <span class="result-qty">${r.craftCount.toLocaleString()}</span>`;
-      if (r.type === 'secondprimary' && r.spCraftsFromOwned > 0) {
-        metaParts.push(`+${r.spCraftsFromOwned.toLocaleString()} crafts from your ${r.primaryName} stock`);
-      } else if (r.type === 'primary' && r.ownedUsed > 0) {
-        metaParts.push(`${r.item.qtyOwned.toLocaleString()} owned → ${r.ownedUsed.toLocaleString()} used as chain input`);
-      } else if (r.item.qtyOwned > 0 && r.type !== 'secondprimary') {
-        metaParts.push(`${r.item.qtyOwned.toLocaleString()} owned already counted`);
-      }
+    } else if (r.item.qtyOwned > 0 && r.type !== 'secondprimary' && r.type !== 'primary') {
+      metaParts.push(`${r.item.qtyOwned.toLocaleString()} owned already counted`);
     }
 
     const costLine = (r.item.cost > 0 && r.craftCount > 0)
       ? `<div class="result-cost-line">${(r.item.cost * r.craftCount).toLocaleString()} gp &nbsp;&middot;&nbsp; ${r.item.cost.toLocaleString()} gp each</div>`
       : '';
 
+    const rightContent = r.ownedCoversGoal
+      ? `<div class="result-done-text">DONE</div>`
+      : `<div class="result-xp-total" style="color:var(--accent)">${r.craftCount.toLocaleString()}</div><div class="result-xp-label">to craft</div>`;
+
     card.innerHTML = `
       <div class="result-card-header ${headerClass}">${headerText}</div>
       <div class="result-card-body">
         <div style="flex:1">
-          <div class="result-action">${actionLine}</div>
           <div class="result-item-name">${r.item.name}</div>
+          <div class="result-xp-total">${r.xpContributed.toLocaleString()} XP</div>
           <div class="result-meta">${metaParts.join(' &nbsp;&middot;&nbsp; ')}</div>
           ${costLine}
         </div>
         <div class="result-right">
-          <div class="result-xp-total">${r.xpContributed.toLocaleString()} XP</div>
-          <div class="result-xp-label">toward goal</div>
+          ${rightContent}
         </div>
       </div>
     `;
