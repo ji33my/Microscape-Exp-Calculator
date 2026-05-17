@@ -1421,6 +1421,7 @@ function captureFormState() {
     goalLevel:    document.getElementById('goalLevel').value,
     currentPct:   document.getElementById('currentPct').value,
     enableTime:    document.getElementById('enableTime').checked,
+    optimizeXP:    document.getElementById('optimizeXP').checked,
     doubleUp:      document.getElementById('doubleUpChance').value,
     shellPockets:  document.getElementById('shellPockets').checked,
     gildedPockets: document.getElementById('gildedPockets').checked,
@@ -1441,6 +1442,7 @@ function loadPresetData(preset) {
   document.getElementById('goalLevel').value     = preset.goalLevel;
   document.getElementById('currentPct').value    = preset.currentPct;
   document.getElementById('enableTime').checked   = !!preset.enableTime;
+  document.getElementById('optimizeXP').checked   = !!preset.optimizeXP;
   document.getElementById('doubleUpChance').value = preset.doubleUp || '';
   document.getElementById('shellPockets').checked  = !!preset.shellPockets;
   document.getElementById('gildedPockets').checked = !!preset.gildedPockets;
@@ -1792,17 +1794,8 @@ function calculate() {
 
   document.getElementById('summaryBox').innerHTML = `
     <div class="summary-row">
-      <span class="summary-label">CURRENT LEVEL</span>
-      <span class="summary-value">Lvl ${curLvl} &nbsp;&middot;&nbsp; ${pct.toFixed(2)}% til Lvl ${curLvl + 1}</span>
-    </div>
-    <div class="summary-row">
-      <span class="summary-label">XP THIS LEVEL</span>
-      <span class="summary-value">${xpEarnedThisLevel.toLocaleString()} / ${levelXP.toLocaleString()}</span>
-    </div>
-    <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>
-    <div class="summary-row">
-      <span class="summary-label">GOAL LEVEL</span>
-      <span class="summary-value">Lvl ${goalLvl}</span>
+      <span class="summary-label">LEVEL</span>
+      <span class="summary-value">${curLvl} &rarr; ${goalLvl}</span>
     </div>
     <div class="summary-row">
       <span class="summary-label">TOTAL XP NEEDED</span>

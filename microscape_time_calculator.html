@@ -223,6 +223,31 @@
 
   @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 
+  .info-btn {
+    font-size: 15px; color: var(--gold2); background: transparent;
+    border: none; cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0;
+  }
+  .info-btn:hover { color: var(--gold); }
+
+  .modal-close-x {
+    position: absolute; top: 10px; right: 14px; font-size: 20px;
+    color: var(--text-dim); background: transparent; border: none;
+    cursor: pointer; line-height: 1; font-family: 'Cinzel', serif; font-weight: 700;
+  }
+  .modal-close-x:hover { color: var(--text); }
+
+  .info-tabs { display: flex; gap: 0; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .info-tab {
+    font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; padding: 8px 16px;
+    border: 1px solid var(--border); border-bottom: none; border-right: none;
+    background: var(--bg); color: var(--text-dim); cursor: pointer;
+    margin-bottom: -2px; transition: color 0.1s;
+  }
+  .info-tab:last-child { border-right: 1px solid var(--border); }
+  .info-tab:hover { color: var(--text); }
+  .info-tab.active { background: var(--panel); color: var(--gold); border-top-color: var(--gold2); border-bottom-color: var(--panel); }
+
   /* Modals */
   .modal-overlay {
     display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -319,6 +344,18 @@
 </style>
 </head>
 <body>
+
+<!-- Info Modal -->
+<div class="modal-overlay" id="infoModal">
+  <div class="modal-box" style="max-width:380px;padding:16px">
+    <button class="modal-close-x" onclick="closeInfoModal()">&#x2715;</button>
+    <div class="info-tabs">
+      <button class="info-tab active" onclick="switchInfoTab('gathering', this)">Gathering</button>
+      <button class="info-tab" onclick="switchInfoTab('crafting', this)">Crafting</button>
+    </div>
+    <img id="infoModalImg" src="" alt="" style="display:block;width:100%;border-radius:var(--radius)">
+  </div>
+</div>
 
 <!-- Save Preset Modal -->
 <div class="modal-overlay" id="saveModal">
@@ -615,7 +652,10 @@ function addItem(isPrimary = false) {
     </div>
     <div class="row-2b">
       <div>
-        <label>SECONDS PER ACTION</label>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <label style="margin:0">SECONDS PER ACTION</label>
+          <button class="info-btn" type="button" onclick="openInfoModal()">ⓘ</button>
+        </div>
         <input type="number" id="tsecs-${id}" min="0.1" step="0.1" placeholder="e.g. 16">
       </div>
       <div>
@@ -744,6 +784,23 @@ function calculate() {
     itemsTitle.classList.add('collapsed');
   }
 }
+
+// ---- Info Modal ----
+const IMG_GATHERING = 'GATHERING_PLACEHOLDER';
+const IMG_CRAFTING  = 'CRAFTING_PLACEHOLDER';
+
+function openInfoModal() {
+  document.getElementById('infoModalImg').src = IMG_GATHERING;
+  document.querySelectorAll('.info-tab').forEach((t,i) => t.classList.toggle('active', i === 0));
+  document.getElementById('infoModal').classList.add('open');
+}
+function closeInfoModal() { document.getElementById('infoModal').classList.remove('open'); }
+function switchInfoTab(type, btn) {
+  document.getElementById('infoModalImg').src = type === 'gathering' ? IMG_GATHERING : IMG_CRAFTING;
+  document.querySelectorAll('.info-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+document.getElementById('infoModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeInfoModal(); });
 
 // ---- Init ----
 renderPresetTabs();
