@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microscape Time Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:           #0d0b08;
+    --panel:        #1b1710;
+    --panel2:       #231f16;
+    --border:       #3e3218;
+    --border-light: #7a5e28;
+    --gold:         #e8b84b;
+    --gold2:        #a07c2a;
+    --text:         #ddd3bc;
+    --text-dim:     #7d7060;
+    --green:        #5ab76a;
+    --green-dim:    #2e5e35;
+    --red:          #cc5050;
+    --accent:       #d97c30;
+    --radius:       4px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 24px 16px;
+    max-width: 820px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 27px;
+    font-weight: 700;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 6px;
+    letter-spacing: 3px;
+    text-shadow: 0 0 30px rgba(232,184,75,0.25);
+  }
+
+  .subtitle {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 15px;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .panel-title {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gold2);
+    margin-bottom: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .panel-title.collapsible { cursor: pointer; user-select: none; }
+  .panel-title.collapsible:hover { color: var(--gold); }
+  .toggle-icon { font-style: normal; font-size: 10px; transition: transform 0.2s; display: inline-block; margin-left: 2px; }
+  .panel-title.collapsed .toggle-icon { transform: rotate(-90deg); }
+  .panel-title.collapsed { margin-bottom: 0; }
+  .collapsible-body { overflow: hidden; }
+  .collapsible-body.collapsed { display: none; }
+
+  .row-2  { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .row-2b { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row-3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  input[type="number"], input[type="text"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-bottom: 2px solid var(--border-light);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 19px;
+    font-weight: 700;
+    padding: 6px 10px;
+    outline: none;
+    border-radius: var(--radius);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(232,184,75,0.12); }
+  input::placeholder { color: var(--text-dim); opacity: 0.5; font-weight: 400; }
+
+  input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+  .check-label {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim);
+    user-select: none; margin-bottom: 0;
+  }
+  .check-label:hover { color: var(--text); }
+  .check-label:hover .check-box { border-color: var(--gold2); }
+  .check-box {
+    width: 18px; height: 18px; flex-shrink: 0;
+    border: 1px solid var(--border-light); border-radius: 3px;
+    background: var(--bg); display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .check-box::after {
+    content: ''; width: 5px; height: 9px;
+    border-right: 2px solid var(--bg); border-bottom: 2px solid var(--bg);
+    transform: rotate(45deg) translate(-1px,-1px); opacity: 0; transition: opacity 0.1s;
+  }
+  .check-label input[type="checkbox"]:checked + .check-box { background: var(--gold); border-color: var(--gold); }
+  .check-label input[type="checkbox"]:checked + .check-box::after { opacity: 1; }
+
+  /* Buttons */
+  .btn {
+    font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 9px 14px; border: 1px solid; border-radius: var(--radius);
+    cursor: pointer; transition: all 0.1s; background: transparent;
+  }
+  .btn:active { transform: translate(1px,1px); }
+
+  .btn-gold { color: var(--bg); background: var(--gold); border-color: #b88c2a; box-shadow: 0 2px 0 #7a5c14; }
+  .btn-gold:hover { background: #f5cc60; }
+  .btn-dim { color: var(--text-dim); border-color: var(--border); }
+  .btn-dim:hover { color: var(--text); border-color: var(--border-light); }
+  .btn-add { font-size: 14px; padding: 7px 16px; color: var(--green); border-color: var(--green-dim); background: transparent; }
+  .btn-add:hover { background: rgba(90,183,106,0.08); }
+  .btn-calculate {
+    padding: 10px 28px; font-size: 14px; letter-spacing: 3px;
+    color: var(--bg); background: var(--gold); border-color: #b88c2a;
+    box-shadow: 0 3px 0 #7a5c14, 0 6px 20px rgba(232,184,75,0.15);
+  }
+  .btn-calculate:hover { background: #f5cc60; }
+  .btn-calculate:active { transform: translateY(2px); box-shadow: 0 1px 0 #7a5c14; }
+  .btn-util { font-size: 13px; padding: 6px 14px; color: var(--text-dim); border-color: var(--border); }
+  .btn-util:hover { color: var(--text); border-color: var(--border-light); }
+  .btn-storage { font-size: 13px; padding: 5px 12px; color: var(--text-dim); border-color: var(--border); }
+  .btn-storage:hover { color: var(--text); border-color: var(--border-light); }
+  .btn-clear { flex: 1; font-size: 13px; padding: 7px 10px; color: var(--red); border-color: #6a2828; }
+  .btn-clear:hover { background: rgba(204,80,80,0.08); }
+
+  /* Storage btn wrap */
+  .storage-btn-wrap {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+
+  /* Presets */
+  .preset-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+  .preset-tab {
+    font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700;
+    padding: 5px 12px; background: var(--panel2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; gap: 8px; transition: all 0.1s;
+  }
+  .preset-tab:hover { border-color: var(--border-light); color: var(--text); }
+  .preset-tab.active { border-color: var(--gold2); color: var(--gold); background: rgba(232,184,75,0.06); }
+  .preset-del { color: var(--red); font-size: 16px; opacity: 0.6; line-height: 1; }
+  .preset-del:hover { opacity: 1; }
+
+  /* Item blocks */
+  .item-block {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--panel2); padding: 14px; margin-bottom: 10px;
+    position: relative; animation: slideIn 0.2s ease;
+  }
+  .item-block.is-primary { border-left: 3px solid var(--accent); }
+  .item-block.is-additional { border-left: 3px solid var(--border-light); }
+
+  .item-type-tag {
+    font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .item-type-tag.primary { color: var(--accent); }
+  .item-type-tag.additional { color: var(--border-light); }
+
+  .remove-btn {
+    position: absolute; top: 8px; right: 8px;
+    font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 1px; padding: 3px 10px; color: var(--red);
+    border: 1px solid #6a2828; border-radius: var(--radius);
+    background: transparent; cursor: pointer;
+  }
+  .remove-btn:hover { background: rgba(204,80,80,0.1); }
+
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Modals */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.82); z-index: 200;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--panel); border: 1px solid var(--border);
+    border-top: 2px solid var(--border-light); border-radius: var(--radius);
+    padding: 24px; width: 100%; max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7); position: relative;
+  }
+
+  /* Storage toggle */
+  .storage-toggle { display: flex; gap: 0; margin: 10px 0 16px; }
+  .storage-toggle-btn {
+    font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; padding: 8px 16px;
+    border: 1px solid var(--border); border-radius: 0; cursor: pointer;
+    background: var(--panel2); color: var(--text-dim); flex: 1; text-align: center; transition: all 0.1s;
+  }
+  .storage-toggle-btn:first-child { border-right: none; }
+  .storage-toggle-btn.active { background: rgba(232,184,75,0.1); color: var(--gold); border-color: var(--gold2); }
+  .storage-clear-row { display: flex; gap: 8px; margin-top: 8px; }
+  .storage-note {
+    font-size: 15px; color: var(--text-dim); margin-top: 12px;
+    padding-top: 10px; border-top: 1px solid var(--border); line-height: 1.5;
+  }
+  .storage-indicator { font-size: 15px; color: var(--text-dim); margin-bottom: 4px; }
+  .storage-indicator span { color: var(--gold2); }
+
+  /* Settings */
+  .settings-grid { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end; }
+  .settings-grid > div { flex: 1; min-width: 160px; }
+  .time-note { font-size: 13px; font-weight: 700; color: var(--text-dim); margin-top: 6px; }
+  .pct-wrap { position: relative; }
+  .pct-wrap input { padding-right: 30px; }
+  .pct-suffix {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    color: var(--text-dim); font-size: 19px; font-weight: 700;
+    pointer-events: none; user-select: none;
+  }
+
+  /* Results */
+  .results { display: none; }
+  .results.visible { display: block; }
+
+  .summary-box {
+    background: var(--panel2); border: 1px solid var(--border-light);
+    border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px;
+  }
+  .summary-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 18px;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-label { color: var(--text-dim); font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .summary-value { color: var(--gold); font-size: 19px; font-weight: 700; }
+  .summary-value.big { font-size: 29px; color: var(--accent); }
+
+  .result-card {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 10px; overflow: hidden;
+  }
+  .result-card-header {
+    padding: 8px 14px; border-bottom: 1px solid var(--border);
+    font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--accent); border-left: 3px solid var(--accent);
+  }
+  .result-card-header.additional { color: var(--border-light); border-left-color: var(--border-light); }
+  .result-card-body {
+    padding: 14px; display: flex; justify-content: space-between;
+    align-items: center; gap: 20px;
+  }
+  .result-item-name { font-size: 23px; font-weight: 700; color: var(--text); line-height: 1.1; }
+  .result-meta { font-size: 15px; font-weight: 700; color: var(--text-dim); margin-top: 4px; }
+  .result-cost-line { font-size: 15px; font-weight: 700; color: var(--gold2); margin-top: 2px; }
+  .result-right { text-align: right; flex-shrink: 0; }
+  .result-time { font-size: 23px; font-weight: 700; color: var(--gold); }
+  .result-label { font-size: 14px; font-weight: 700; color: var(--text-dim); font-family: 'Cinzel', serif; letter-spacing: 1px; }
+
+  .warning-box {
+    background: rgba(204,80,80,0.07); border: 1px solid #6a2828;
+    border-left: 3px solid var(--red); border-radius: var(--radius);
+    padding: 10px 14px; font-size: 15px; font-weight: 700; color: #d08080; margin-bottom: 12px;
+  }
+
+  @media (max-width: 540px) {
+    .row-2, .row-2b, .row-3 { grid-template-columns: 1fr; }
+    .result-card-body { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Save Preset Modal -->
+<div class="modal-overlay" id="saveModal">
+  <div class="modal-box">
+    <div class="panel-title">SAVE PRESET</div>
+    <label style="margin-bottom:6px">PRESET NAME</label>
+    <input type="text" id="presetNameInput" placeholder="e.g. Fishing grind" style="margin-bottom:14px">
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-gold" onclick="confirmSavePreset()">SAVE</button>
+      <button class="btn btn-dim" onclick="closeSaveModal()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- Storage Options Modal -->
+<div class="modal-overlay" id="storageModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="panel-title">PRESET STORAGE</div>
+    <div class="storage-indicator">ACTIVE STORAGE: <span id="storageModeLabel">localStorage</span></div>
+    <div class="storage-toggle">
+      <button class="storage-toggle-btn" id="btnModeLocal" onclick="setStorageMode('local')">LOCAL STORAGE</button>
+      <button class="storage-toggle-btn" id="btnModeCookie" onclick="setStorageMode('cookie')">COOKIES</button>
+    </div>
+    <div class="storage-clear-row">
+      <button class="btn btn-clear" onclick="clearStorage('local')">CLEAR LOCALSTORAGE</button>
+      <button class="btn btn-clear" onclick="clearStorage('cookie')">CLEAR COOKIES</button>
+    </div>
+    <div class="storage-note">
+      <b style="color:var(--text)">Local Storage</b> — persists until manually cleared. No size limit.<br><br>
+      <b style="color:var(--text)">Cookies</b> — persists for 1 year. Limited to ~4KB. Cleared with browser cookies.
+    </div>
+    <button class="btn btn-dim" onclick="closeStorageModal()" style="width:100%;margin-top:14px">CLOSE</button>
+  </div>
+</div>
+
+<!-- Presets -->
+<div class="panel" id="presetsPanel" style="display:none">
+  <div class="panel-title">PRESETS</div>
+  <div class="preset-bar" id="presetTabs"></div>
+</div>
+
+<h1>MICROSCAPE</h1>
+<p class="subtitle">Time Calculator</p>
+
+<div class="storage-btn-wrap">
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-util" onclick="openSaveModal()">&#128190; SAVE PRESET</button>
+  </div>
+  <button class="btn btn-storage" onclick="openStorageModal()">&#9881; PRESET STORAGE OPTIONS</button>
+</div>
+
+<!-- Settings -->
+<div class="panel">
+  <div class="panel-title">SETTINGS</div>
+  <div class="settings-grid">
+    <div>
+      <label>DOUBLE UP CHANCE <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
+      <div class="pct-wrap">
+        <input type="number" id="doubleUpChance" min="0" max="100" step="0.1" placeholder="0">
+        <span class="pct-suffix">%</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding-bottom:2px">
+      <label class="check-label">
+        <input type="checkbox" id="shellPockets">
+        <span class="check-box"></span>
+        <span>SHELL POCKETS</span>
+      </label>
+      <label class="check-label">
+        <input type="checkbox" id="gildedPockets">
+        <span class="check-box"></span>
+        <span>GILDED POCKETS</span>
+      </label>
+      <div class="time-note">Shell +2 &middot; Gilded +3 slots &middot; Base 25</div>
+    </div>
+  </div>
+  <div class="time-note" style="margin-top:10px">&#9888; Not accurate for Chill Spot banking &middot; Banking time fixed at 46s</div>
+</div>
+
+<!-- Items -->
+<div class="panel">
+  <div id="itemsTitle" class="panel-title collapsible" onclick="togglePanel('itemsBody', this)"><span>ITEMS</span> <span class="toggle-icon">&#9660;</span></div>
+  <div id="itemsBody" class="collapsible-body">
+    <div id="itemsList"></div>
+    <div style="margin-top:12px">
+      <button class="btn btn-add" onclick="addItem()">+ ADD ADDITIONAL ITEM</button>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center">
+  <button class="btn btn-dim" onclick="clearAll()">CLEAR</button>
+  <button class="btn btn-calculate" onclick="calculate()">&#9654; CALCULATE</button>
+</div>
+
+<div class="results" id="results">
+  <div class="panel" style="margin-top:4px">
+    <div id="resultsTitle" class="panel-title collapsible" onclick="togglePanel('resultsBody', this)">RESULTS <span class="toggle-icon">&#9660;</span></div>
+    <div id="resultsBody" class="collapsible-body">
+      <div class="summary-box" id="summaryBox"></div>
+      <div id="warningBox"></div>
+      <div id="itemResults"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let itemCount = 0;
+let activePresetId = null;
+let storageMode = localStorage.getItem('microscape-time-storage-mode') || 'local';
+let presets = loadPresetsFromStorage();
+
+// ---- Helpers ----
+function togglePanel(bodyId, titleEl) {
+  const body = document.getElementById(bodyId);
+  const isCollapsed = body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', !isCollapsed);
+  titleEl.classList.toggle('collapsed', !isCollapsed);
+}
+
+function formatTime(secs) {
+  if (secs <= 0) return '0s';
+  const y = Math.floor(secs / 31536000);
+  const d = Math.floor((secs % 31536000) / 86400);
+  const h = Math.floor((secs % 86400) / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (y > 0) return `${y}y ${d}d ${h}h ${m}m`;
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+// ---- Storage ----
+function loadPresetsFromStorage() {
+  if (storageMode === 'cookie') {
+    const match = document.cookie.match(/(?:^|; )microscape-time-presets=([^;]*)/);
+    try { return match ? JSON.parse(decodeURIComponent(match[1])) : []; } catch { return []; }
+  }
+  try { return JSON.parse(localStorage.getItem('microscape-time-presets') || '[]'); } catch { return []; }
+}
+
+function savePresetsToStorage() {
+  if (storageMode === 'cookie') {
+    const val = encodeURIComponent(JSON.stringify(presets));
+    if (val.length > 3800) { alert('Presets too large for cookies. Switch to Local Storage.'); return; }
+    const exp = new Date(); exp.setFullYear(exp.getFullYear() + 1);
+    document.cookie = 'microscape-time-presets=' + val + ';expires=' + exp.toUTCString() + ';path=/';
+  } else {
+    localStorage.setItem('microscape-time-presets', JSON.stringify(presets));
+  }
+}
+
+function setStorageMode(mode) {
+  storageMode = mode;
+  localStorage.setItem('microscape-time-storage-mode', mode);
+  presets = loadPresetsFromStorage();
+  updateStorageUI();
+  renderPresetTabs();
+}
+
+function clearStorage(target) {
+  if (!confirm('Clear all presets from ' + (target === 'local' ? 'Local Storage' : 'Cookies') + '?')) return;
+  if (target === 'local') localStorage.removeItem('microscape-time-presets');
+  else document.cookie = 'microscape-time-presets=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+  if (target === storageMode) { presets = []; renderPresetTabs(); }
+}
+
+function updateStorageUI() {
+  document.getElementById('storageModeLabel').textContent = storageMode === 'cookie' ? 'Cookies' : 'Local Storage';
+  document.getElementById('btnModeLocal').classList.toggle('active', storageMode === 'local');
+  document.getElementById('btnModeCookie').classList.toggle('active', storageMode === 'cookie');
+}
+
+function openStorageModal() { updateStorageUI(); document.getElementById('storageModal').classList.add('open'); }
+function closeStorageModal() { document.getElementById('storageModal').classList.remove('open'); }
+document.getElementById('storageModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeStorageModal(); });
+
+// ---- Presets ----
+function captureFormState() {
+  const items = [];
+  document.querySelectorAll('.item-block').forEach(block => {
+    const id = block.dataset.itemId;
+    items.push({
+      name: document.getElementById('tname-' + id)?.value || '',
+      qty:  document.getElementById('tqty-'  + id)?.value || '',
+      secs: document.getElementById('tsecs-' + id)?.value || '',
+      cost: document.getElementById('tcost-' + id)?.value || '',
+      isPrimary: block.classList.contains('is-primary')
+    });
+  });
+  return {
+    doubleUp:     document.getElementById('doubleUpChance').value,
+    shellPockets: document.getElementById('shellPockets').checked,
+    gildedPockets:document.getElementById('gildedPockets').checked,
+    items
+  };
+}
+
+function openSaveModal() {
+  const firstName = document.querySelector('.item-block [id^="tname-"]')?.value || '';
+  document.getElementById('presetNameInput').value = firstName || 'My Preset';
+  document.getElementById('saveModal').classList.add('open');
+  setTimeout(() => { const inp = document.getElementById('presetNameInput'); inp.focus(); inp.select(); }, 50);
+}
+function closeSaveModal() { document.getElementById('saveModal').classList.remove('open'); }
+
+function confirmSavePreset() {
+  const name = document.getElementById('presetNameInput').value.trim();
+  if (!name) return;
+  const state = captureFormState();
+  state.name = name; state.id = Date.now();
+  presets.push(state);
+  savePresetsToStorage();
+  closeSaveModal();
+  renderPresetTabs(state.id);
+}
+
+function deletePreset(id) {
+  presets = presets.filter(p => p.id !== id);
+  savePresetsToStorage();
+  if (activePresetId === id) activePresetId = null;
+  renderPresetTabs();
+}
+
+function loadPreset(id) {
+  const preset = presets.find(p => p.id === id);
+  if (!preset) return;
+  activePresetId = id;
+  document.getElementById('itemsList').innerHTML = '';
+  itemCount = 0;
+  document.getElementById('doubleUpChance').value   = preset.doubleUp || '';
+  document.getElementById('shellPockets').checked   = !!preset.shellPockets;
+  document.getElementById('gildedPockets').checked  = !!preset.gildedPockets;
+  preset.items.forEach(item => {
+    addItem(item.isPrimary);
+    const id2 = itemCount;
+    document.getElementById('tname-' + id2).value = item.name;
+    document.getElementById('tqty-'  + id2).value = item.qty;
+    document.getElementById('tsecs-' + id2).value = item.secs;
+    document.getElementById('tcost-' + id2).value = item.cost;
+  });
+  document.getElementById('results').classList.remove('visible');
+  const itemsBody = document.getElementById('itemsBody');
+  const itemsTitle = document.getElementById('itemsTitle');
+  if (itemsBody.classList.contains('collapsed')) {
+    itemsBody.classList.remove('collapsed');
+    itemsTitle.classList.remove('collapsed');
+  }
+  renderPresetTabs(id);
+}
+
+function renderPresetTabs(activeId) {
+  if (activeId !== undefined) activePresetId = activeId;
+  const panel = document.getElementById('presetsPanel');
+  const tabsEl = document.getElementById('presetTabs');
+  if (presets.length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  tabsEl.innerHTML = presets.map(p => `
+    <button class="preset-tab${p.id === activePresetId ? ' active' : ''}" onclick="loadPreset(${p.id})">
+      ${p.name}
+      <span class="preset-del" onclick="event.stopPropagation();deletePreset(${p.id})">&#x2715;</span>
+    </button>
+  `).join('');
+}
+
+document.getElementById('saveModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSaveModal(); });
+document.getElementById('presetNameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmSavePreset();
+  if (e.key === 'Escape') closeSaveModal();
+});
+
+// ---- Item Builders ----
+function addItem(isPrimary = false) {
+  itemCount++;
+  const id = itemCount;
+  const div = document.createElement('div');
+  div.className = 'item-block ' + (isPrimary ? 'is-primary' : 'is-additional');
+  div.id = 'item-' + id;
+  div.dataset.itemId = id;
+  div.innerHTML = `
+    ${!isPrimary ? `<button class="remove-btn" onclick="removeItem(${id})">&#x2715;</button>` : ''}
+    <div class="item-type-tag ${isPrimary ? 'primary' : 'additional'}">${isPrimary ? 'PRIMARY ITEM' : 'ADDITIONAL ITEM'}</div>
+    <div class="row-2" style="margin-bottom:10px">
+      <div>
+        <label>ITEM NAME</label>
+        <input type="text" id="tname-${id}" placeholder="e.g. Willow Logs">
+      </div>
+      <div>
+        <label>QUANTITY</label>
+        <input type="number" id="tqty-${id}" min="1" placeholder="e.g. 500">
+      </div>
+    </div>
+    <div class="row-2b">
+      <div>
+        <label>SECONDS PER ACTION</label>
+        <input type="number" id="tsecs-${id}" min="0.1" step="0.1" placeholder="e.g. 16">
+      </div>
+      <div>
+        <label>COST/ITEM <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
+        <input type="number" id="tcost-${id}" min="0" placeholder="0">
+      </div>
+    </div>
+  `;
+  document.getElementById('itemsList').appendChild(div);
+}
+
+function removeItem(id) {
+  document.getElementById('item-' + id)?.remove();
+}
+
+// ---- Clear ----
+function clearAll() {
+  document.getElementById('itemsList').innerHTML = '';
+  itemCount = 0;
+  addItem(true);
+  document.getElementById('doubleUpChance').value  = '';
+  document.getElementById('shellPockets').checked  = false;
+  document.getElementById('gildedPockets').checked = false;
+  document.getElementById('results').classList.remove('visible');
+  const itemsBody = document.getElementById('itemsBody');
+  const itemsTitle = document.getElementById('itemsTitle');
+  if (itemsBody.classList.contains('collapsed')) {
+    itemsBody.classList.remove('collapsed');
+    itemsTitle.classList.remove('collapsed');
+  }
+  activePresetId = null;
+  renderPresetTabs();
+}
+
+// ---- Calculate ----
+function calculate() {
+  const doubleUpChance = parseFloat(document.getElementById('doubleUpChance').value) || 0;
+  const doubleUpFactor = 1 - doubleUpChance / 100;
+  const bagSize = (document.getElementById('shellPockets').checked  ? 2 : 0) +
+                  (document.getElementById('gildedPockets').checked ? 3 : 0) + 25;
+
+  const warnEl    = document.getElementById('warningBox');
+  const resultsEl = document.getElementById('itemResults');
+  warnEl.innerHTML = ''; resultsEl.innerHTML = '';
+
+  const items = [];
+  let valid = true;
+  document.querySelectorAll('.item-block').forEach(block => {
+    const id   = block.dataset.itemId;
+    const name = document.getElementById('tname-' + id)?.value.trim() || ('Item ' + id);
+    const qty  = parseInt(document.getElementById('tqty-'  + id)?.value);
+    const secs = parseFloat(document.getElementById('tsecs-' + id)?.value);
+    const cost = parseFloat(document.getElementById('tcost-' + id)?.value) || 0;
+    if (!qty || isNaN(qty) || qty <= 0) {
+      warnEl.innerHTML += `<div class="warning-box">&#9888; "${name}" — enter a quantity.</div>`;
+      valid = false; return;
+    }
+    if (!secs || isNaN(secs) || secs <= 0) {
+      warnEl.innerHTML += `<div class="warning-box">&#9888; "${name}" — enter seconds per action.</div>`;
+      valid = false; return;
+    }
+    items.push({ name, qty, secs, cost, isPrimary: block.classList.contains('is-primary') });
+  });
+
+  if (items.length === 0) { alert('Add at least one item.'); return; }
+  if (!valid) { document.getElementById('results').classList.add('visible'); return; }
+
+  let totalSecs = 0, totalBankTrips = 0, totalCost = 0;
+
+  items.forEach(item => {
+    const effectiveQty = item.qty * doubleUpFactor;
+    const bankTrips    = Math.floor(item.qty / bagSize);
+    const itemSecs     = Math.round(effectiveQty * item.secs + bankTrips * 46);
+    const itemCost     = item.qty * item.cost;
+    totalSecs      += itemSecs;
+    totalBankTrips += bankTrips;
+    totalCost      += itemCost;
+
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.innerHTML = `
+      <div class="result-card-header ${item.isPrimary ? '' : 'additional'}">${item.isPrimary ? 'PRIMARY ITEM' : 'ADDITIONAL ITEM'}</div>
+      <div class="result-card-body">
+        <div style="flex:1">
+          <div class="result-item-name">${item.name}</div>
+          <div class="result-meta">${item.qty.toLocaleString()} actions &nbsp;&middot;&nbsp; ${item.secs}s each &nbsp;&middot;&nbsp; ${bankTrips.toLocaleString()} bank trips</div>
+          ${item.cost > 0 ? `<div class="result-cost-line">${itemCost.toLocaleString()} gp total &nbsp;&middot;&nbsp; ${item.cost.toLocaleString()} gp each</div>` : ''}
+        </div>
+        <div class="result-right">
+          <div class="result-time">${formatTime(itemSecs)}</div>
+          <div class="result-label">for this item</div>
+        </div>
+      </div>
+    `;
+    resultsEl.appendChild(card);
+  });
+
+  document.getElementById('summaryBox').innerHTML = `
+    <div class="summary-row">
+      <span class="summary-label">TOTAL TIME</span>
+      <span class="summary-value big">${formatTime(totalSecs)}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-label">TOTAL BANK TRIPS</span>
+      <span class="summary-value">${totalBankTrips.toLocaleString()}</span>
+    </div>
+    ${totalCost > 0 ? `
+    <div class="summary-row">
+      <span class="summary-label">TOTAL COST</span>
+      <span class="summary-value">${totalCost.toLocaleString()} gp</span>
+    </div>` : ''}
+    ${doubleUpChance > 0 ? `
+    <div class="summary-row">
+      <span class="summary-label">DOUBLE UP</span>
+      <span class="summary-value">${doubleUpChance}% applied</span>
+    </div>` : ''}
+  `;
+
+  document.getElementById('results').classList.add('visible');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const itemsBody  = document.getElementById('itemsBody');
+  const itemsTitle = document.getElementById('itemsTitle');
+  if (!itemsBody.classList.contains('collapsed')) {
+    itemsBody.classList.add('collapsed');
+    itemsTitle.classList.add('collapsed');
+  }
+}
+
+// ---- Init ----
+renderPresetTabs();
+addItem(true);
+</script>
+</body>
+</html>

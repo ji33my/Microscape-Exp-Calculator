@@ -1,8 +1,10 @@
-# Microscape XP & Item Calculator
+# Microscape Calculators
 
-A browser-based calculator for planning your training in [Microscape](https://microscape.cc/play/). Enter your current level, goal level, and the items you plan to craft or gather — it tells you exactly how many actions to take, the XP contribution of each, and optionally how long it will take.
+Browser-based tools for planning your training in [Microscape](https://microscape.cc/play/).
 
-**[Open Calculator](https://ji33my.github.io/Microscape-Exp-Calculator/microscape_calculator.html)**
+**[Open Exp/Time Calculator](https://ji33my.github.io/Microscape-Exp-Calculator/microscape_calculator.html)** — XP planning, item quantities, crafting/gathering modes, and time estimates.
+
+**[Open Basic Time Calculator](https://ji33my.github.io/Microscape-Exp-Calculator/microscape_time_calculator.html)** — Enter items, quantities, and seconds per action to get a time estimate.
 
 ---
 
