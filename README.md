@@ -12,6 +12,18 @@ This project is completely open — use it, save it, fork it, modify it, do what
 
 ---
 
+## Usage
+
+1. Select **Crafting** or **Gathering** mode
+2. Enter your **current level**, **goal level**, and **% to next level** (shown in-game on the skill panel)
+3. Fill in your primary item and any additional items
+4. Optionally enable **time estimate** and enter seconds per action
+5. Hit **Calculate**
+
+Results show how many of each item to craft or gather, XP contributed per item, and estimated time if enabled.
+
+---
+
 ## Features
 
 ### General
@@ -51,15 +63,3 @@ Microscape uses a scaled version of the classic OSRS XP formula:
 $$\text{TotalXP}(L) = \left\lfloor \frac{\sum_{n=1}^{L-1} \left\lfloor 10(n + 300 \cdot 2^{n/7}) \right\rfloor}{4} \right\rfloor$$
 
 This gives the cumulative XP required to reach level `L`. XP needed for a given level is `TotalXP(L+1) - TotalXP(L)`.
-
----
-
-## Usage
-
-1. Select **Crafting** or **Gathering** mode
-2. Enter your **current level**, **goal level**, and **% to next level** (shown in-game on the skill panel)
-3. Fill in your primary item and any additional items
-4. Optionally enable **time estimate** and enter seconds per action
-5. Hit **Calculate**
-
-Results show how many of each item to craft or gather, XP contributed per item, and estimated time if enabled.
