@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microscape XP Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1a1208;
+    --panel: #2a1f0e;
+    --panel2: #1f1609;
+    --border: #8b6914;
+    --border-light: #c9a227;
+    --gold: #f0c040;
+    --gold2: #c9a227;
+    --text: #f5e6b0;
+    --text-dim: #a08040;
+    --green: #4caf50;
+    --green-dim: #2d6e30;
+    --red: #e05050;
+    --accent: #ff9900;
+    --pixel: 2px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    min-height: 100vh;
+    padding: 24px 16px;
+    max-width: 820px;
+    margin: 0 auto;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(139,105,20,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(139,105,20,0.06) 0%, transparent 60%);
+  }
+
+  h1 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 13px;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 0 #7a5500, 0 0 20px rgba(240,192,64,0.3);
+  }
+
+  .subtitle {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 16px;
+    margin-bottom: 24px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: var(--pixel) solid var(--border);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    position: relative;
+    box-shadow: inset 0 0 0 1px rgba(201,162,39,0.1), 4px 4px 0 rgba(0,0,0,0.5);
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px; right: 3px; bottom: 3px;
+    border: 1px solid rgba(201,162,39,0.12);
+    pointer-events: none;
+  }
+
+  .panel-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--gold2);
+    margin-bottom: 14px;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .level-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .row-2  { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .row-2b { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row-3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  label {
+    display: block;
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+
+  input[type="number"], input[type="text"] {
+    width: 100%;
+    background: var(--panel2);
+    border: var(--pixel) solid var(--border);
+    color: var(--gold);
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    padding: 6px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+    border-radius: 0;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input:focus { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(240,192,64,0.2); }
+  input::placeholder { color: var(--text-dim); opacity: 0.5; }
+
+  /* Item blocks */
+  .item-block {
+    border: 1px solid rgba(139,105,20,0.35);
+    padding: 14px;
+    margin-bottom: 10px;
+    position: relative;
+    animation: slideIn 0.2s ease;
+  }
+
+  .item-block.is-primary { border-left: 3px solid var(--accent); }
+  .item-block.is-chain   { border-left: 3px solid var(--gold2); margin-left: 20px; }
+  .item-block.is-capped  { border-left: 3px solid var(--border-light); }
+
+  .item-type-tag {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .item-type-tag.primary { color: var(--accent); }
+  .item-type-tag.chain   { color: var(--gold2); }
+  .item-type-tag.capped  { color: var(--border-light); }
+
+  .chain-note { font-size: 15px; color: var(--text-dim); margin-bottom: 10px; }
+
+  .remove-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    padding: 3px 8px;
+    color: var(--red);
+    border: 1px solid #7a2020;
+    background: transparent;
+    cursor: pointer;
+  }
+  .remove-btn:hover { background: rgba(224,80,80,0.1); }
+
+  .chain-connector { font-size: 14px; color: var(--gold2); padding: 2px 0 4px 20px; letter-spacing: 1px; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Buttons */
+  .btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 9px 14px;
+    border: var(--pixel) solid;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.1s;
+    background: transparent;
+    border-radius: 0;
+  }
+  .btn:active { transform: translate(1px,1px); }
+
+  .btn-gold {
+    color: var(--bg);
+    background: var(--gold);
+    border-color: var(--gold2);
+    box-shadow: 2px 2px 0 #7a5500;
+  }
+  .btn-gold:hover { background: #ffd84d; }
+
+  .btn-dim {
+    color: var(--text-dim);
+    border-color: var(--border);
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+  }
+  .btn-dim:hover { color: var(--text); border-color: var(--border-light); }
+
+  .btn-add {
+    font-size: 14px;
+    padding: 7px 16px;
+    color: var(--green);
+    border-color: var(--green-dim);
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+  }
+  .btn-add:hover { background: rgba(76,175,80,0.1); }
+
+  .btn-chain {
+    font-size: 14px;
+    padding: 7px 16px;
+    color: var(--gold2);
+    border-color: #7a5500;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+  }
+  .btn-chain:hover { background: rgba(201,162,39,0.1); }
+
+  .btn-calculate {
+    width: 100%;
+    padding: 14px;
+    font-size: 9px;
+    color: var(--bg);
+    background: var(--gold);
+    border-color: var(--gold2);
+    box-shadow: 3px 3px 0 #7a5500;
+  }
+  .btn-calculate:hover { background: #ffd84d; box-shadow: 4px 4px 0 #7a5500; }
+
+  .util-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .btn-util {
+    font-size: 13px;
+    padding: 6px 14px;
+    color: var(--text-dim);
+    border-color: var(--border);
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+  }
+  .btn-util:hover { color: var(--text); border-color: var(--border-light); }
+
+  /* Presets */
+  .preset-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .preset-tab {
+    font-family: 'VT323', monospace;
+    font-size: 17px;
+    padding: 5px 12px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.1s;
+  }
+  .preset-tab:hover { border-color: var(--border-light); color: var(--text); }
+  .preset-tab.active { border-color: var(--gold2); color: var(--gold); background: rgba(201,162,39,0.08); }
+
+  .preset-del {
+    color: var(--red);
+    font-size: 13px;
+    opacity: 0.6;
+    line-height: 1;
+  }
+  .preset-del:hover { opacity: 1; }
+
+  /* Modals */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.78);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: var(--panel);
+    border: var(--pixel) solid var(--border);
+    padding: 24px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 6px 6px 0 rgba(0,0,0,0.6);
+    position: relative;
+  }
+
+  /* XP table */
+  .xp-table-wrap {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    margin: 12px 0;
+  }
+
+  .xp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 18px;
+  }
+
+  .xp-table thead th {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--gold2);
+    text-align: left;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 1px;
+    position: sticky;
+    top: 0;
+    background: var(--panel2);
+  }
+
+  .xp-table td {
+    padding: 4px 12px;
+    border-bottom: 1px solid rgba(139,105,20,0.2);
+    color: var(--text);
+  }
+
+  .xp-table tr:hover td { background: rgba(201,162,39,0.05); }
+
+  .xp-table td:first-child {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--gold2);
+    width: 60px;
+  }
+
+  /* Results */
+  .results { display: none; }
+  .results.visible { display: block; }
+
+  .summary-box {
+    background: var(--panel2);
+    border: var(--pixel) solid var(--gold2);
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    box-shadow: inset 0 0 20px rgba(240,192,64,0.04);
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(139,105,20,0.25);
+    font-size: 19px;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-label { color: var(--text-dim); }
+  .summary-value { color: var(--gold); }
+  .summary-value.big { font-size: 26px; color: var(--accent); }
+
+  .xp-bar-wrap {
+    height: 14px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    margin: 10px 0;
+    overflow: hidden;
+  }
+  .xp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green-dim), var(--green));
+    transition: width 0.6s ease;
+    position: relative;
+  }
+  .xp-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 4px; right: 4px; bottom: 2px;
+    background: rgba(255,255,255,0.08);
+  }
+
+  .cost-summary {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Result cards */
+  .result-card {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
+  .result-card-header {
+    padding: 6px 14px;
+    border-bottom: 1px solid rgba(139,105,20,0.3);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    letter-spacing: 1px;
+  }
+  .result-card-header.primary { color: var(--accent);        border-left: 3px solid var(--accent); }
+  .result-card-header.chain   { color: var(--gold2);         border-left: 3px solid var(--gold2); }
+  .result-card-header.capped  { color: var(--border-light);  border-left: 3px solid var(--border-light); }
+  .result-card-header.done    { color: var(--green);         border-left: 3px solid var(--green); }
+
+  .result-card-body {
+    padding: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .result-action { font-size: 15px; color: var(--text-dim); margin-bottom: 2px; }
+  .result-item-name { font-size: 26px; color: var(--text); line-height: 1.1; }
+  .result-qty { color: var(--accent); }
+  .result-done-text { color: var(--green); font-size: 22px; }
+  .result-meta { font-size: 15px; color: var(--text-dim); margin-top: 4px; }
+  .result-cost-line { font-size: 15px; color: var(--gold2); margin-top: 2px; }
+
+  .result-right { text-align: right; flex-shrink: 0; }
+  .result-xp-total { font-size: 24px; color: var(--gold); }
+  .result-xp-label { font-size: 14px; color: var(--text-dim); }
+
+  .warning-box {
+    background: rgba(224,80,80,0.08);
+    border: 1px solid #7a2020;
+    padding: 10px 14px;
+    font-size: 15px;
+    color: #e08080;
+    margin-bottom: 12px;
+  }
+
+  @media (max-width: 540px) {
+    .level-row, .row-3 { grid-template-columns: 1fr 1fr; }
+    .row-2, .row-2b { grid-template-columns: 1fr; }
+    .result-card-body { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Save Preset Modal -->
+<div class="modal-overlay" id="saveModal">
+  <div class="modal-box">
+    <div class="panel-title">SAVE PRESET</div>
+    <label style="margin-bottom:6px">PRESET NAME</label>
+    <input type="text" id="presetNameInput" placeholder="e.g. Steel Bars Lv 30→40" style="margin-bottom:14px">
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-gold" onclick="confirmSavePreset()">SAVE</button>
+      <button class="btn btn-dim" onclick="closeSaveModal()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- XP Table Modal -->
+<div class="modal-overlay" id="xpModal">
+  <div class="modal-box" style="max-width:560px">
+    <div class="panel-title">XP TABLE — LEVELS 1 TO 99</div>
+    <div class="xp-table-wrap">
+      <table class="xp-table">
+        <thead>
+          <tr>
+            <th>LVL</th>
+            <th>CUMULATIVE XP</th>
+            <th>XP TO NEXT</th>
+          </tr>
+        </thead>
+        <tbody id="xpTableBody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-dim" onclick="closeXPTable()" style="width:100%;margin-top:4px">CLOSE</button>
+  </div>
+</div>
+
+<!-- Presets -->
+<div class="panel" id="presetsPanel" style="display:none">
+  <div class="panel-title">PRESETS</div>
+  <div class="preset-bar" id="presetTabs"></div>
+</div>
+
+<h1>MICROSCAPE</h1>
+<p class="subtitle">XP &amp; Item Calculator</p>
+
+<div class="panel">
+  <div class="panel-title">CHARACTER</div>
+  <div class="level-row">
+    <div>
+      <label>CURRENT LEVEL</label>
+      <input type="number" id="currentLevel" min="1" max="99" placeholder="1">
+    </div>
+    <div>
+      <label>GOAL LEVEL</label>
+      <input type="number" id="goalLevel" min="2" max="99" placeholder="50">
+    </div>
+    <div>
+      <label>% THROUGH LEVEL</label>
+      <input type="number" id="currentPct" min="0" max="99.99" step="0.01" placeholder="0.00">
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-title">ITEMS TO CRAFT</div>
+  <div id="itemsList"></div>
+  <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-add" onclick="addSecondary()">+ ADD ITEM WITH QTY GOAL</button>
+    <button class="btn btn-chain" id="btnChain" onclick="addChainItem()">+ ADD CHAIN ITEM</button>
+  </div>
+</div>
+
+<button class="btn btn-calculate" onclick="calculate()">&#9654; CALCULATE</button>
+
+<div class="util-row">
+  <button class="btn btn-util" onclick="openSaveModal()">&#128190; SAVE PRESET</button>
+  <button class="btn btn-util" onclick="showXPTable()">&#128203; VIEW XP TABLE</button>
+</div>
+
+<div class="results" id="results">
+  <div class="panel" style="margin-top:4px">
+    <div class="panel-title">RESULTS</div>
+    <div class="summary-box" id="summaryBox"></div>
+    <div id="warningBox"></div>
+    <div id="costSummary"></div>
+    <div id="itemResults"></div>
+  </div>
+</div>
+
+<script>
+let itemCount = 0;
+let chainItemId = null;
+let primaryItemId = null;
+let activePresetId = null;
+let presets = JSON.parse(localStorage.getItem('microscape-presets') || '[]');
+
+// ---- XP Table (Microscape = OSRS formula × 10) ----
+// XP_TABLE[L] = cumulative XP to reach level L (1-indexed, XP_TABLE[1] = 0)
+const XP_TABLE = (() => {
+  const t = [0, 0];
+  let sum = 0;
+  for (let n = 1; n <= 99; n++) {
+    sum += Math.floor(10 * (n + 300 * Math.pow(2, n / 7)));
+    t.push(Math.floor(sum / 4));
+  }
+  return t; // t[1]..t[100]
+})();
+
+function xpForLevel(L) {
+  // XP needed to go from level L to level L+1
+  if (L + 1 >= XP_TABLE.length) return 0;
+  return XP_TABLE[L + 1] - XP_TABLE[L];
+}
+
+// ---- Helpers ----
+function getPrimaryName() {
+  if (!primaryItemId) return '';
+  return document.getElementById('iname-' + primaryItemId)?.value.trim() || '';
+}
+
+function updateChainLabels() {
+  if (chainItemId === null) return;
+  const name = getPrimaryName() || 'primary item';
+  const noteEl = document.getElementById('chain-note-' + chainItemId);
+  if (noteEl) noteEl.textContent = 'consumes ' + name + ' as an ingredient';
+  const reqEl = document.getElementById('chain-reqname-' + chainItemId);
+  if (reqEl) reqEl.textContent = name;
+}
+
+// ---- Presets ----
+function openSaveModal() {
+  const lvl  = document.getElementById('currentLevel').value || '?';
+  const goal = document.getElementById('goalLevel').value || '?';
+  const pName = getPrimaryName();
+  document.getElementById('presetNameInput').value = pName
+    ? `${pName} · Lv ${lvl} → ${goal}`
+    : `Lv ${lvl} → ${goal}`;
+  document.getElementById('saveModal').classList.add('open');
+  setTimeout(() => {
+    const inp = document.getElementById('presetNameInput');
+    inp.focus(); inp.select();
+  }, 50);
+}
+
+function closeSaveModal() {
+  document.getElementById('saveModal').classList.remove('open');
+}
+
+function confirmSavePreset() {
+  const name = document.getElementById('presetNameInput').value.trim();
+  if (!name) return;
+  const state = captureFormState();
+  state.name = name;
+  state.id = Date.now();
+  presets.push(state);
+  localStorage.setItem('microscape-presets', JSON.stringify(presets));
+  closeSaveModal();
+  renderPresetTabs(state.id);
+}
+
+function deletePreset(id) {
+  presets = presets.filter(p => p.id !== id);
+  localStorage.setItem('microscape-presets', JSON.stringify(presets));
+  if (activePresetId === id) activePresetId = null;
+  renderPresetTabs();
+}
+
+function loadPreset(id) {
+  const preset = presets.find(p => p.id === id);
+  if (!preset) return;
+  activePresetId = id;
+  loadPresetData(preset);
+  renderPresetTabs(id);
+}
+
+function renderPresetTabs(activeId) {
+  if (activeId !== undefined) activePresetId = activeId;
+  const panel  = document.getElementById('presetsPanel');
+  const tabsEl = document.getElementById('presetTabs');
+  if (presets.length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  tabsEl.innerHTML = presets.map(p => `
+    <button class="preset-tab${p.id === activePresetId ? ' active' : ''}" onclick="loadPreset(${p.id})">
+      ${p.name}
+      <span class="preset-del" onclick="event.stopPropagation();deletePreset(${p.id})">&#x2715;</span>
+    </button>
+  `).join('');
+}
+
+function captureFormState() {
+  const items = [];
+  document.querySelectorAll('.item-block').forEach(block => {
+    const id   = block.dataset.itemId;
+    const type = block.dataset.type;
+    const item = {
+      type,
+      name:  document.getElementById('iname-'  + id)?.value || '',
+      xpPer: document.getElementById('ixp-'    + id)?.value || '',
+      cost:  document.getElementById('icost-'  + id)?.value || ''
+    };
+    if (type === 'primary') {
+      item.qtyOwned = document.getElementById('iqty-' + id)?.value || '';
+    } else if (type === 'chain') {
+      item.ratio     = document.getElementById('isp-ratio-'   + id)?.value || '';
+      item.chainGoal = document.getElementById('ichain-goal-' + id)?.value || '';
+    } else {
+      item.qtyOwned = document.getElementById('iqty-'  + id)?.value || '';
+      item.qtyGoal  = document.getElementById('igoal-' + id)?.value || '';
+    }
+    items.push(item);
+  });
+  return {
+    currentLevel: document.getElementById('currentLevel').value,
+    goalLevel:    document.getElementById('goalLevel').value,
+    currentPct:   document.getElementById('currentPct').value,
+    items
+  };
+}
+
+function loadPresetData(preset) {
+  document.getElementById('itemsList').innerHTML = '';
+  itemCount = 0; chainItemId = null; primaryItemId = null;
+  const btn = document.getElementById('btnChain');
+  btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
+
+  document.getElementById('currentLevel').value = preset.currentLevel;
+  document.getElementById('goalLevel').value    = preset.goalLevel;
+  document.getElementById('currentPct').value   = preset.currentPct;
+
+  preset.items.forEach(item => {
+    if (item.type === 'primary') {
+      addPrimary();
+      const id = primaryItemId;
+      document.getElementById('iname-'  + id).value = item.name;
+      document.getElementById('ixp-'    + id).value = item.xpPer;
+      document.getElementById('iqty-'   + id).value = item.qtyOwned;
+      document.getElementById('icost-'  + id).value = item.cost;
+    } else if (item.type === 'chain') {
+      addChainItem();
+      const id = chainItemId;
+      document.getElementById('iname-'        + id).value = item.name;
+      document.getElementById('ixp-'          + id).value = item.xpPer;
+      document.getElementById('isp-ratio-'    + id).value = item.ratio;
+      document.getElementById('ichain-goal-'  + id).value = item.chainGoal || '';
+      document.getElementById('icost-'        + id).value = item.cost;
+    } else {
+      addSecondary();
+      const id = itemCount;
+      document.getElementById('iname-'  + id).value = item.name;
+      document.getElementById('ixp-'    + id).value = item.xpPer;
+      document.getElementById('iqty-'   + id).value = item.qtyOwned;
+      document.getElementById('igoal-'  + id).value = item.qtyGoal;
+      document.getElementById('icost-'  + id).value = item.cost;
+    }
+  });
+
+  updateChainLabels();
+  document.getElementById('results').classList.remove('visible');
+}
+
+// ---- XP Table ----
+function showXPTable() {
+  let rows = '';
+  for (let L = 1; L <= 99; L++) {
+    const cumXP    = XP_TABLE[L];
+    const tillNext = xpForLevel(L);
+    rows += `<tr>
+      <td>${L}</td>
+      <td>${cumXP.toLocaleString()}</td>
+      <td>${tillNext > 0 ? tillNext.toLocaleString() : '—'}</td>
+    </tr>`;
+  }
+  document.getElementById('xpTableBody').innerHTML = rows;
+  document.getElementById('xpModal').classList.add('open');
+}
+
+function closeXPTable() {
+  document.getElementById('xpModal').classList.remove('open');
+}
+
+// Close modals on backdrop click
+document.getElementById('xpModal').addEventListener('click',   e => { if (e.target === e.currentTarget) closeXPTable(); });
+document.getElementById('saveModal').addEventListener('click',  e => { if (e.target === e.currentTarget) closeSaveModal(); });
+document.getElementById('presetNameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter')  confirmSavePreset();
+  if (e.key === 'Escape') closeSaveModal();
+});
+
+// ---- Item Builders ----
+function addPrimary() {
+  itemCount++;
+  const id = itemCount;
+  primaryItemId = id;
+  const div = document.createElement('div');
+  div.className = 'item-block is-primary';
+  div.id = 'item-' + id;
+  div.dataset.itemId = id;
+  div.dataset.type = 'primary';
+  div.innerHTML = `
+    <div class="item-type-tag primary">PRIMARY ITEM</div>
+    <div class="row-2">
+      <div>
+        <label>ITEM NAME</label>
+        <input type="text" id="iname-${id}" placeholder="e.g. Steel Bar" oninput="updateChainLabels()">
+      </div>
+      <div>
+        <label>XP PER CRAFT</label>
+        <input type="number" id="ixp-${id}" min="1" placeholder="17">
+      </div>
+    </div>
+    <div class="row-2b">
+      <div>
+        <label>QTY OWNED <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
+        <input type="number" id="iqty-${id}" min="0" placeholder="0">
+      </div>
+      <div>
+        <label>COST PER CRAFT <span style="color:var(--text-dim);font-size:13px">(optional, gp)</span></label>
+        <input type="number" id="icost-${id}" min="0" placeholder="0">
+      </div>
+    </div>
+  `;
+  document.getElementById('itemsList').appendChild(div);
+}
+
+function addChainItem() {
+  if (chainItemId !== null) { alert('Only one chain item can be added.'); return; }
+  itemCount++;
+  const id = itemCount;
+  chainItemId = id;
+  const primaryName = getPrimaryName();
+
+  const arrow = document.createElement('div');
+  arrow.className = 'chain-connector';
+  arrow.id = 'chain-arrow-' + id;
+  arrow.textContent = '↳ uses ' + (primaryName || 'primary item') + ' as input';
+
+  const div = document.createElement('div');
+  div.className = 'item-block is-chain';
+  div.id = 'item-' + id;
+  div.dataset.itemId = id;
+  div.dataset.type = 'chain';
+  div.innerHTML = `
+    <button class="remove-btn" onclick="removeChainItem(${id})">&#x2715;</button>
+    <div class="item-type-tag chain">CHAIN ITEM</div>
+    <div class="chain-note" id="chain-note-${id}">consumes ${primaryName || 'primary item'} as an ingredient</div>
+    <div class="row-2">
+      <div>
+        <label>ITEM NAME</label>
+        <input type="text" id="iname-${id}" placeholder="e.g. Steel Arrowtips">
+      </div>
+      <div>
+        <label>XP PER CRAFT</label>
+        <input type="number" id="ixp-${id}" min="1" placeholder="59">
+      </div>
+    </div>
+    <div class="row-3" style="margin-top:8px">
+      <div>
+        <label><span id="chain-reqname-${id}" style="color:var(--accent)">${primaryName || 'primary item'}</span> PER CRAFT</label>
+        <input type="number" id="isp-ratio-${id}" min="1" placeholder="1">
+      </div>
+      <div>
+        <label>QTY GOAL <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
+        <input type="number" id="ichain-goal-${id}" min="0" placeholder="e.g. 7000">
+      </div>
+      <div>
+        <label>EXTRA COST PER CRAFT <span style="color:var(--text-dim);font-size:13px">(optional, gp)</span></label>
+        <input type="number" id="icost-${id}" min="0" placeholder="0">
+      </div>
+    </div>
+  `;
+
+  document.getElementById('itemsList').appendChild(arrow);
+  document.getElementById('itemsList').appendChild(div);
+
+  const btn = document.getElementById('btnChain');
+  btn.style.opacity = '0.4';
+  btn.style.pointerEvents = 'none';
+}
+
+function removeChainItem(id) {
+  document.getElementById('item-' + id)?.remove();
+  document.getElementById('chain-arrow-' + id)?.remove();
+  chainItemId = null;
+  const btn = document.getElementById('btnChain');
+  btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
+}
+
+function addSecondary() {
+  itemCount++;
+  const id = itemCount;
+  const div = document.createElement('div');
+  div.className = 'item-block is-capped';
+  div.id = 'item-' + id;
+  div.dataset.itemId = id;
+  div.dataset.type = 'secondary';
+  div.innerHTML = `
+    <button class="remove-btn" onclick="removeItem(${id})">&#x2715;</button>
+    <div class="item-type-tag capped">ITEM WITH QTY GOAL</div>
+    <div class="row-2">
+      <div>
+        <label>ITEM NAME</label>
+        <input type="text" id="iname-${id}" placeholder="e.g. Silver Bar">
+      </div>
+      <div>
+        <label>XP PER CRAFT</label>
+        <input type="number" id="ixp-${id}" min="1" placeholder="13">
+      </div>
+    </div>
+    <div class="row-3" style="margin-top:8px">
+      <div>
+        <label>QTY GOAL <span style="color:var(--red);font-size:13px">(required)</span></label>
+        <input type="number" id="igoal-${id}" min="0" placeholder="e.g. 3000">
+      </div>
+      <div>
+        <label>QTY OWNED <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
+        <input type="number" id="iqty-${id}" min="0" placeholder="0">
+      </div>
+      <div>
+        <label>COST PER CRAFT <span style="color:var(--text-dim);font-size:13px">(optional, gp)</span></label>
+        <input type="number" id="icost-${id}" min="0" placeholder="0">
+      </div>
+    </div>
+  `;
+  document.getElementById('itemsList').appendChild(div);
+}
+
+function removeItem(id) {
+  document.getElementById('item-' + id)?.remove();
+}
+
+// ---- Calculate ----
+function calculate() {
+  const curLvl  = parseInt(document.getElementById('currentLevel').value);
+  const goalLvl = parseInt(document.getElementById('goalLevel').value);
+  const pct     = parseFloat(document.getElementById('currentPct').value) || 0;
+
+  if (!curLvl || !goalLvl || isNaN(curLvl) || isNaN(goalLvl)) { alert('Please enter your current level and goal level.'); return; }
+  if (goalLvl <= curLvl) { alert('Goal level must be higher than current level.'); return; }
+
+  const levelXP           = xpForLevel(curLvl);
+  const xpEarnedThisLevel = Math.round((pct / 100) * levelXP);
+  let xpNeeded = levelXP - xpEarnedThisLevel;
+  for (let l = curLvl + 1; l < goalLvl; l++) xpNeeded += xpForLevel(l);
+
+  document.getElementById('summaryBox').innerHTML = `
+    <div class="summary-row">
+      <span class="summary-label">CURRENT LEVEL</span>
+      <span class="summary-value">Lv ${curLvl} &nbsp;&middot;&nbsp; ${pct.toFixed(2)}% through</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-label">GOAL LEVEL</span>
+      <span class="summary-value">Lv ${goalLvl}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-label">XP THIS LEVEL</span>
+      <span class="summary-value">${xpEarnedThisLevel.toLocaleString()} / ${levelXP.toLocaleString()}</span>
+    </div>
+    <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>
+    <div class="summary-row">
+      <span class="summary-label">TOTAL XP NEEDED</span>
+      <span class="summary-value big">${xpNeeded.toLocaleString()} XP</span>
+    </div>
+  `;
+
+  const warnEl    = document.getElementById('warningBox');
+  const costEl    = document.getElementById('costSummary');
+  const resultsEl = document.getElementById('itemResults');
+  warnEl.innerHTML = ''; costEl.innerHTML = ''; resultsEl.innerHTML = '';
+
+  let primaryItem = null, secondPrimaryItem = null;
+  const cappedItems = [];
+
+  document.querySelectorAll('.item-block').forEach(block => {
+    const id      = block.dataset.itemId;
+    const type    = block.dataset.type;
+    if (!id) return;
+    const name     = document.getElementById('iname-'  + id)?.value.trim() || ('Item ' + id);
+    const xpPer    = parseFloat(document.getElementById('ixp-'   + id)?.value);
+    const qtyOwned = parseInt(document.getElementById('iqty-'  + id)?.value)  || 0;
+    const cost     = parseFloat(document.getElementById('icost-' + id)?.value) || 0;
+    if (isNaN(xpPer) || xpPer <= 0) return;
+
+    if (type === 'primary') {
+      primaryItem = { name, xpPer, qtyOwned, cost };
+    } else if (type === 'chain') {
+      const ratio       = parseInt(document.getElementById('isp-ratio-'   + id)?.value) || 1;
+      const chainGoalV  = document.getElementById('ichain-goal-' + id)?.value;
+      const qtyGoal     = (chainGoalV && !isNaN(parseInt(chainGoalV))) ? parseInt(chainGoalV) : null;
+      secondPrimaryItem = { name, xpPer, qtyOwned: 0, ratio, qtyGoal, cost };
+    } else {
+      const goalV   = document.getElementById('igoal-' + id)?.value;
+      const qtyGoal = parseInt(goalV);
+      if (!goalV || isNaN(qtyGoal) || qtyGoal <= 0) {
+        warnEl.innerHTML += `<div class="warning-box">&#9888; "${name}" needs a QTY GOAL to be included.</div>`;
+        return;
+      }
+      cappedItems.push({ name, xpPer, qtyOwned, qtyGoal, cost });
+    }
+  });
+
+  if (!primaryItem) {
+    warnEl.innerHTML = '<div class="warning-box">&#9888; No primary item found.</div>';
+    document.getElementById('results').classList.add('visible');
+    return;
+  }
+
+  const results = [];
+  let xpRemaining = xpNeeded;
+
+  // Capped items first
+  cappedItems.forEach(item => {
+    const ownedCoversGoal = item.qtyOwned >= item.qtyGoal;
+    const craftCount      = ownedCoversGoal ? 0 : item.qtyGoal - item.qtyOwned;
+    const xpContributed   = Math.min(item.qtyGoal * item.xpPer, xpRemaining);
+    xpRemaining = Math.max(0, xpRemaining - xpContributed);
+    results.push({ type: 'capped', item, craftCount, xpContributed, ownedCoversGoal });
+  });
+
+  // Primary + optional chain
+  if (secondPrimaryItem) {
+    const sp    = secondPrimaryItem;
+    const ratio = sp.ratio;
+
+    const spCraftsFromOwnedPrimary   = Math.floor(primaryItem.qtyOwned / ratio);
+    const xpFromOwnedPrimaryUsedForSP = spCraftsFromOwnedPrimary * sp.xpPer;
+    const primaryOwnedUsedForSP      = spCraftsFromOwnedPrimary * ratio;
+
+    let xpFromOwned = Math.min(xpFromOwnedPrimaryUsedForSP, xpRemaining);
+    let xpAfterOwned = Math.max(0, xpRemaining - xpFromOwned);
+
+    let primaryCraftCount, spCraftCount, primarySoloCraftCount = 0;
+
+    if (sp.qtyGoal !== null) {
+      const maxNewChainCrafts = Math.max(0, sp.qtyGoal - spCraftsFromOwnedPrimary);
+      const xpPerChainCraft   = ratio * primaryItem.xpPer + sp.xpPer;
+      const xpFromFullChain   = maxNewChainCrafts * xpPerChainCraft;
+      if (xpFromFullChain >= xpAfterOwned) {
+        spCraftCount      = Math.ceil(xpAfterOwned / xpPerChainCraft);
+        primaryCraftCount = spCraftCount * ratio;
+      } else {
+        spCraftCount           = maxNewChainCrafts;
+        primaryCraftCount      = maxNewChainCrafts * ratio;
+        primarySoloCraftCount  = Math.ceil((xpAfterOwned - xpFromFullChain) / primaryItem.xpPer);
+        primaryCraftCount     += primarySoloCraftCount;
+      }
+    } else {
+      const xpPerPrimary = primaryItem.xpPer + sp.xpPer / ratio;
+      primaryCraftCount  = Math.ceil(xpAfterOwned / xpPerPrimary);
+      spCraftCount       = Math.floor(primaryCraftCount / ratio);
+    }
+
+    const primaryXpContributed = primaryCraftCount * primaryItem.xpPer;
+    const spXpContributed      = spCraftCount * sp.xpPer + xpFromOwnedPrimaryUsedForSP;
+
+    results.push({
+      type: 'primary', item: primaryItem,
+      craftCount: primaryCraftCount,
+      xpContributed: Math.min(primaryXpContributed, xpRemaining),
+      ownedCoversGoal: xpFromOwned >= xpRemaining,
+      ownedUsed: primaryOwnedUsedForSP,
+      chainName: sp.name, primarySoloCraftCount
+    });
+    results.push({
+      type: 'secondprimary', item: sp,
+      craftCount: spCraftCount + spCraftsFromOwnedPrimary,
+      xpContributed: Math.min(spXpContributed, xpRemaining),
+      ownedCoversGoal: false,
+      spCraftsFromOwned: spCraftsFromOwnedPrimary,
+      ratio, primaryName: primaryItem.name,
+      isCapped: sp.qtyGoal !== null, qtyGoal: sp.qtyGoal
+    });
+  } else {
+    const xpFromOwned    = Math.min(primaryItem.qtyOwned * primaryItem.xpPer, xpRemaining);
+    const xpAfterOwned   = Math.max(0, xpRemaining - xpFromOwned);
+    const primaryCraftCount = Math.ceil(xpAfterOwned / primaryItem.xpPer);
+    results.push({
+      type: 'primary', item: primaryItem,
+      craftCount: primaryCraftCount,
+      xpContributed: xpRemaining,
+      ownedCoversGoal: xpFromOwned >= xpRemaining
+    });
+  }
+
+  // Total cost
+  let totalCost = 0;
+  results.forEach(r => { if (r.item.cost > 0 && r.craftCount > 0) totalCost += r.item.cost * r.craftCount; });
+  if (totalCost > 0) {
+    const totalXP  = results.reduce((s, r) => s + r.xpContributed, 0);
+    const gpPerXP  = totalXP > 0 ? (totalCost / totalXP).toFixed(2) : '—';
+    costEl.innerHTML = `
+      <div class="cost-summary">
+        <span style="color:var(--text-dim);font-size:16px">TOTAL MATERIAL COST</span>
+        <div style="text-align:right">
+          <div style="font-size:24px;color:var(--gold)">${totalCost.toLocaleString()} gp</div>
+          <div style="font-size:14px;color:var(--text-dim)">${gpPerXP} gp per xp</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Render result cards
+  results.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+
+    let headerClass, headerText;
+    if (r.ownedCoversGoal) {
+      headerClass = 'done';
+      headerText  = r.type === 'capped' ? 'COMPLETE — QTY GOAL MET' : 'COMPLETE — OWNED QTY COVERS THIS';
+    } else if (r.type === 'capped') {
+      headerClass = 'capped';
+      headerText  = `CAPPED AT ${r.item.qtyGoal.toLocaleString()}`;
+    } else if (r.type === 'primary') {
+      headerClass = 'primary';
+      headerText  = r.chainName ? `PRIMARY — craft these, then use as input for ${r.chainName}` : 'PRIMARY';
+    } else {
+      headerClass = 'chain';
+      headerText  = r.isCapped
+        ? `CHAIN — capped at ${r.qtyGoal.toLocaleString()} · consumes ${r.primaryName} (${r.ratio} per craft)`
+        : `CHAIN — consumes ${r.primaryName} as ingredient (${r.ratio} per craft)`;
+    }
+
+    const metaParts = [`${r.item.xpPer.toLocaleString()} XP each`];
+    let actionLine;
+
+    if (r.ownedCoversGoal) {
+      actionLine = `<span class="result-done-text">DONE</span>`;
+      metaParts.push(`${r.item.qtyOwned.toLocaleString()} owned covers goal`);
+    } else {
+      actionLine = `Craft <span class="result-qty">${r.craftCount.toLocaleString()}</span>`;
+      if (r.type === 'secondprimary' && r.spCraftsFromOwned > 0) {
+        metaParts.push(`+${r.spCraftsFromOwned.toLocaleString()} crafts from your ${r.primaryName} stock`);
+      } else if (r.type === 'primary' && r.ownedUsed > 0) {
+        metaParts.push(`${r.item.qtyOwned.toLocaleString()} owned → ${r.ownedUsed.toLocaleString()} used as chain input`);
+      } else if (r.item.qtyOwned > 0 && r.type !== 'secondprimary') {
+        metaParts.push(`${r.item.qtyOwned.toLocaleString()} owned already counted`);
+      }
+    }
+
+    const costLine = (r.item.cost > 0 && r.craftCount > 0)
+      ? `<div class="result-cost-line">${(r.item.cost * r.craftCount).toLocaleString()} gp &nbsp;&middot;&nbsp; ${r.item.cost.toLocaleString()} gp each</div>`
+      : '';
+
+    card.innerHTML = `
+      <div class="result-card-header ${headerClass}">${headerText}</div>
+      <div class="result-card-body">
+        <div style="flex:1">
+          <div class="result-action">${actionLine}</div>
+          <div class="result-item-name">${r.item.name}</div>
+          <div class="result-meta">${metaParts.join(' &nbsp;&middot;&nbsp; ')}</div>
+          ${costLine}
+        </div>
+        <div class="result-right">
+          <div class="result-xp-total">${r.xpContributed.toLocaleString()} XP</div>
+          <div class="result-xp-label">toward goal</div>
+        </div>
+      </div>
+    `;
+    resultsEl.appendChild(card);
+  });
+
+  document.getElementById('results').classList.add('visible');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+renderPresetTabs();
+addPrimary();
+</script>
+</body>
+</html>
