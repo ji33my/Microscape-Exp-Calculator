@@ -1139,6 +1139,8 @@ function switchMode(mode, fromPresetLoad = false) {
   if (nameInput) nameInput.placeholder = mode === 'gathering' ? 'e.g. Willow Logs' : 'e.g. Steel Bar';
   if (xpInput)   xpInput.placeholder   = mode === 'gathering' ? '50' : '17';
   if (xpLabel)   xpLabel.textContent   = mode === 'gathering' ? 'XP PER GATHER' : 'XP PER CRAFT';
+  const secsLabel = document.querySelector('.item-block.is-primary .item-time-field label');
+  if (secsLabel) secsLabel.textContent = mode === 'gathering' ? 'SECONDS PER GATHER' : 'SECONDS PER CRAFT';
 
   const typeTag = document.querySelector('.item-block.is-primary .item-type-tag');
   if (typeTag) typeTag.textContent = mode === 'gathering' ? 'GATHERING ITEM' : 'PRIMARY ITEM';
