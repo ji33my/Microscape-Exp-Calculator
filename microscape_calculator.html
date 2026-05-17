@@ -134,6 +134,45 @@
   input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(232,184,75,0.12); }
   input::placeholder { color: var(--text-dim); opacity: 0.5; font-weight: 400; }
 
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--gold);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+  .check-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    user-select: none;
+    margin-bottom: 0;
+  }
+  .check-label:hover { color: var(--text); }
+
+  .time-section {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .time-note {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-dim);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
   .pct-wrap { position: relative; }
   .pct-wrap input { padding-right: 30px; }
   .pct-suffix {
@@ -802,6 +841,28 @@
       </div>
     </div>
   </div>
+  <div class="time-section">
+    <label class="check-label">
+      <input type="checkbox" id="enableTime" onchange="toggleTimeOptions()">
+      <span>ENABLE TIME ESTIMATE</span>
+    </label>
+    <div id="timeOptions" style="display:none;margin-top:12px">
+      <div class="row-2b">
+        <div>
+          <label>SECONDS BETWEEN ITEMS</label>
+          <input type="number" id="secsPerItem" min="0.1" step="0.1" placeholder="e.g. 3">
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:4px">
+          <label class="check-label">
+            <input type="checkbox" id="shellPockets">
+            <span>SHELL POCKETS</span>
+          </label>
+          <div class="time-note">Loot bag: 25 → 27 slots</div>
+        </div>
+      </div>
+      <div class="time-note" style="margin-top:10px">⚠ Time calculation is currently not accurate for Chill Spot banking</div>
+    </div>
+  </div>
 </div>
 
 <div class="panel">
@@ -834,6 +895,11 @@
 </div>
 
 <script>
+function toggleTimeOptions() {
+  document.getElementById('timeOptions').style.display =
+    document.getElementById('enableTime').checked ? '' : 'none';
+}
+
 function togglePanel(bodyId, titleEl) {
   const body = document.getElementById(bodyId);
   const isCollapsed = body.classList.contains('collapsed');
@@ -858,6 +924,11 @@ function clearAll() {
     itemsBody.classList.remove('collapsed');
     itemsTitle.classList.remove('collapsed');
   }
+
+  document.getElementById('enableTime').checked  = false;
+  document.getElementById('secsPerItem').value   = '';
+  document.getElementById('shellPockets').checked = false;
+  toggleTimeOptions();
 
   document.getElementById('results').classList.remove('visible');
   activePresetId = null;
@@ -1043,6 +1114,9 @@ function captureFormState() {
     currentLevel: document.getElementById('currentLevel').value,
     goalLevel:    document.getElementById('goalLevel').value,
     currentPct:   document.getElementById('currentPct').value,
+    enableTime:   document.getElementById('enableTime').checked,
+    secsPerItem:  document.getElementById('secsPerItem').value,
+    shellPockets: document.getElementById('shellPockets').checked,
     items
   };
 }
@@ -1053,9 +1127,13 @@ function loadPresetData(preset) {
   const btn = document.getElementById('btnChain');
   btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
 
-  document.getElementById('currentLevel').value = preset.currentLevel;
-  document.getElementById('goalLevel').value    = preset.goalLevel;
-  document.getElementById('currentPct').value   = preset.currentPct;
+  document.getElementById('currentLevel').value  = preset.currentLevel;
+  document.getElementById('goalLevel').value     = preset.goalLevel;
+  document.getElementById('currentPct').value    = preset.currentPct;
+  document.getElementById('enableTime').checked  = !!preset.enableTime;
+  document.getElementById('secsPerItem').value   = preset.secsPerItem || '';
+  document.getElementById('shellPockets').checked = !!preset.shellPockets;
+  toggleTimeOptions();
 
   preset.items.forEach(item => {
     if (item.type === 'primary') {
@@ -1489,6 +1567,30 @@ function calculate() {
     `;
     resultsEl.appendChild(card);
   });
+
+  if (document.getElementById('enableTime').checked) {
+    const secsPerItem = parseFloat(document.getElementById('secsPerItem').value);
+    if (secsPerItem > 0) {
+      const bagSize    = document.getElementById('shellPockets').checked ? 27 : 25;
+      const totalCrafts = results.reduce((s, r) => s + (r.ownedCoversGoal ? 0 : r.craftCount), 0);
+      const bankTrips   = Math.floor(totalCrafts / bagSize);
+      const totalSecs   = Math.round(totalCrafts * secsPerItem + bankTrips * 46);
+      const h = Math.floor(totalSecs / 3600);
+      const m = Math.floor((totalSecs % 3600) / 60);
+      const s = totalSecs % 60;
+      const timeStr = h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+      document.getElementById('summaryBox').innerHTML += `
+        <div class="summary-row">
+          <span class="summary-label">ESTIMATED TIME</span>
+          <span class="summary-value">${timeStr}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">BANK TRIPS</span>
+          <span class="summary-value">${bankTrips.toLocaleString()}</span>
+        </div>
+      `;
+    }
+  }
 
   document.getElementById('results').classList.add('visible');
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
