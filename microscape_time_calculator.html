@@ -337,6 +337,9 @@
     padding: 10px 14px; font-size: 15px; font-weight: 700; color: #d08080; margin-bottom: 12px;
   }
 
+  .btn-overlay { font-size: 13px; padding: 8px 20px; color: #7ab0d4; border-color: #2a4a6a; }
+  .btn-overlay:hover { background: rgba(122,176,212,0.08); border-color: #4a7aaa; }
+
   @media (max-width: 540px) {
     .row-2, .row-2b, .row-3 { grid-template-columns: 1fr; }
     .result-card-body { flex-direction: column; align-items: flex-start; }
@@ -460,11 +463,16 @@
       <div id="itemResults"></div>
     </div>
   </div>
+  <div style="display:flex;justify-content:center;margin-top:10px">
+    <button class="btn btn-overlay" onclick="openOverlay()">&#9654; OPEN LIVE OVERLAY</button>
+  </div>
 </div>
 
 <script>
 let itemCount = 0;
 let activePresetId = null;
+let overlayData = null;
+let overlayWindow = null;
 let storageMode = localStorage.getItem('microscape-time-storage-mode') || 'local';
 let presets = loadPresetsFromStorage();
 
@@ -774,6 +782,8 @@ function calculate() {
     </div>` : ''}
   `;
 
+  overlayData = { items: items.map(i => ({ name: i.name, qty: i.qty, secs: i.secs })), totalSecs };
+
   document.getElementById('results').classList.add('visible');
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -783,6 +793,85 @@ function calculate() {
     itemsBody.classList.add('collapsed');
     itemsTitle.classList.add('collapsed');
   }
+}
+
+// ---- Overlay ----
+function buildOverlayHtml() {
+  const data = overlayData;
+  const CD = 10;
+  return `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><title>Microscape Timer</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Nunito:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0b08;color:#ddd3bc;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;padding:10px;overflow:hidden}
+.idle-note{background:rgba(232,184,75,0.08);border:1px solid #7a5e28;border-left:3px solid #e8b84b;border-radius:4px;padding:8px 10px;color:#e8b84b;font-size:12px;margin-bottom:10px;line-height:1.5;text-align:center}
+.phase-label{font-family:Cinzel,serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#7d7060;text-align:center;margin-bottom:4px}
+.big-time{font-size:48px;text-align:center;color:#e8b84b;line-height:1;margin-bottom:6px;transition:color 0.3s}
+.big-time.activity{color:#d97c30}.big-time.done{color:#5ab76a}
+.action-prompt{display:none;text-align:center;font-size:14px;color:#5ab76a;padding:6px 10px;background:rgba(90,183,106,0.1);border:1px solid #2e5e35;border-radius:4px;margin-bottom:8px;animation:pulse 0.6s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:0.7}to{opacity:1}}
+.progress-bar{height:3px;background:#1b1710;border-radius:2px;margin-bottom:10px;overflow:hidden}
+.progress-fill{height:100%;background:#d97c30;border-radius:2px;transition:width 1s linear}
+table{width:100%;border-collapse:collapse}
+th{font-family:Cinzel,serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#7d7060;padding:4px 5px;border-bottom:1px solid #3e3218;text-align:left}
+th.r{text-align:right}
+td{padding:5px 5px;border-bottom:1px solid #161310;font-size:13px;color:#ddd3bc}
+td.r{text-align:right;color:#e8b84b}td.rem{text-align:right;color:#d97c30}td.ok{text-align:right;color:#5ab76a}
+.start-btn{display:block;width:100%;margin-bottom:10px;font-family:Cinzel,serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;padding:10px;background:#e8b84b;border:1px solid #b88c2a;color:#0d0b08;cursor:pointer;border-radius:4px;box-shadow:0 2px 0 #7a5c14}
+.start-btn:hover{background:#f5cc60}.start-btn:active{transform:translateY(1px);box-shadow:0 1px 0 #7a5c14}
+.close-btn{display:block;width:100%;margin-top:10px;font-family:Cinzel,serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:7px;background:transparent;border:1px solid #3e3218;color:#7d7060;cursor:pointer;border-radius:4px}
+.close-btn:hover{border-color:#7a5e28;color:#ddd3bc}
+</style></head><body>
+<div class="idle-note" id="idleNote">&#9650; Idle in the area you will be skilling before starting the timer and start activity when timer hits 0.</div>
+<button class="start-btn" id="startBtn" onclick="startCountdown()">&#9654; START COUNTDOWN</button>
+<div class="phase-label" id="phaseLabel" style="display:none">STARTING IN</div>
+<div class="big-time" id="bigTimer" style="display:none">${CD}</div>
+<div class="action-prompt" id="actionPrompt">Start Activity in Microscape Now!</div>
+<div class="progress-bar" id="progBar" style="display:none"><div class="progress-fill" id="progFill" style="width:100%"></div></div>
+<table><thead><tr><th>ITEM</th><th class="r">QTY</th><th class="r">DONE</th><th class="r">REM</th></tr></thead><tbody id="tbody"></tbody></table>
+<button class="close-btn" onclick="window.close()">CLOSE OVERLAY</button>
+<script>
+const items=${JSON.stringify(data.items)};
+const totalSecs=${data.totalSecs};
+const CD=${CD};
+let phase="waiting",elapsed=0,actElapsed=0,ticker=null;
+const bigTimer=document.getElementById("bigTimer");
+const phaseLabel=document.getElementById("phaseLabel");
+const actionPrompt=document.getElementById("actionPrompt");
+const idleNote=document.getElementById("idleNote");
+const progFill=document.getElementById("progFill");
+const progBar=document.getElementById("progBar");
+const startBtn=document.getElementById("startBtn");
+const tbody=document.getElementById("tbody");
+function fmt(s){if(s<=0)return"0s";const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;if(h>0)return h+"h "+m+"m "+sc+"s";if(m>0)return m+"m "+sc+"s";return sc+"s";}
+function renderItems(a){tbody.innerHTML=items.map(it=>{const done=Math.min(it.qty,Math.floor(a/it.secs));const rem=Math.max(0,it.qty-done);return"<tr><td>"+it.name+"</td><td class=\\"r\\">"+it.qty.toLocaleString()+"</td><td class=\\"r\\">"+done.toLocaleString()+"</td><td class=\\""+( rem===0?"ok":"rem")+"\\">"+ rem.toLocaleString()+"</td></tr>";}).join("");}
+function startCountdown(){phase="countdown";startBtn.style.display="none";phaseLabel.style.display="block";bigTimer.style.display="block";bigTimer.textContent=CD;ticker=setInterval(tick,1000);}
+function tick(){elapsed++;if(phase==="countdown"){const rem=CD-elapsed;if(rem>0){bigTimer.textContent=rem;}else{phase="activity";elapsed=0;actElapsed=0;idleNote.style.display="none";actionPrompt.style.display="block";phaseLabel.textContent="TIME REMAINING";bigTimer.className="big-time activity";bigTimer.textContent=fmt(totalSecs);progBar.style.display="block";setTimeout(()=>{actionPrompt.style.display="none";},3000);renderItems(0);}}else if(phase==="activity"){actElapsed++;const rem=Math.max(0,totalSecs-actElapsed);bigTimer.textContent=fmt(rem);progFill.style.width=(rem/totalSecs*100)+"%";renderItems(actElapsed);if(rem===0){phase="done";clearInterval(ticker);phaseLabel.textContent="COMPLETE!";bigTimer.className="big-time done";bigTimer.textContent="DONE";}}}
+renderItems(0);
+document.fonts.ready.then(()=>{window.resizeTo(320,document.body.scrollHeight+4);});
+<\/script></body></html>`;
+}
+
+async function openOverlay() {
+  if (!overlayData) { alert('Run a calculation first.'); return; }
+  if (overlayWindow && !overlayWindow.closed) overlayWindow.close();
+  const html = buildOverlayHtml();
+  const initH = Math.max(260, 230 + overlayData.items.length * 30);
+  if (window.documentPictureInPicture) {
+    try {
+      overlayWindow = await window.documentPictureInPicture.requestWindow({ width: 320, height: initH });
+      overlayWindow.document.open();
+      overlayWindow.document.write(html);
+      overlayWindow.document.close();
+      return;
+    } catch (e) { /* fall through to regular popup */ }
+  }
+  overlayWindow = window.open('', 'MicroscapeOverlay',
+    `popup=1,width=320,height=${initH},resizable=no,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`);
+  overlayWindow.document.open();
+  overlayWindow.document.write(html);
+  overlayWindow.document.close();
 }
 
 // ---- Info Modal ----
