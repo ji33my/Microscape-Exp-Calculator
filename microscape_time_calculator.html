@@ -473,6 +473,10 @@ let itemCount = 0;
 let activePresetId = null;
 let overlayData = null;
 let overlayWindow = null;
+let overlayState = null;
+window.addEventListener('message', e => {
+  if (e.data && e.data.type === 'microscape-overlay-state') overlayState = e.data.state;
+});
 let storageMode = localStorage.getItem('microscape-time-storage-mode') || 'local';
 let presets = loadPresetsFromStorage();
 
@@ -700,6 +704,8 @@ function clearAll() {
 
 // ---- Calculate ----
 function calculate() {
+  overlayState = null;
+  if (overlayWindow && !overlayWindow.closed) overlayWindow.close();
   const doubleUpChance = parseFloat(document.getElementById('doubleUpChance').value) || 0;
   const doubleUpFactor = 1 - doubleUpChance / 100;
   const bagSize = (document.getElementById('shellPockets').checked  ? 2 : 0) +
@@ -782,7 +788,11 @@ function calculate() {
     </div>` : ''}
   `;
 
-  overlayData = { items: items.map(i => ({ name: i.name, qty: i.qty, secs: i.secs })), totalSecs, doubleUpFactor };
+  overlayData = {
+    items: items.map(i => ({ name: i.name, qty: i.qty, secs: i.secs })),
+    totalSecs, doubleUpFactor,
+    simulation: items.map(i => simulateItem(i, doubleUpChance / 100, bagSize))
+  };
 
   document.getElementById('results').classList.add('visible');
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -795,10 +805,31 @@ function calculate() {
   }
 }
 
+// ---- Overlay Simulation ----
+function simulateItem(item, doubleUpRate, bagSize) {
+  const flat = [];
+  let t = 0, done = 0, bag = 0;
+  while (done < item.qty) {
+    t += item.secs;
+    const gained = (doubleUpRate > 0 && Math.random() < doubleUpRate) ? 2 : 1;
+    const actual = Math.min(gained, item.qty - done);
+    done += actual;
+    bag += actual;
+    flat.push(Math.round(t), done);
+    if (bag >= bagSize && done < item.qty) {
+      t += 46;
+      bag = bag - bagSize;
+    }
+  }
+  return flat;
+}
+
 // ---- Overlay ----
 function buildOverlayHtml() {
   const data = overlayData;
   const CD = 10;
+  const fp = String(data.totalSecs) + '_' + data.items.map(i => i.name + i.qty).join('_');
+  const initState = (overlayState && overlayState.fp === fp) ? overlayState : null;
   return `<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><title>Microscape Timer</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Nunito:wght@700&display=swap" rel="stylesheet">
@@ -807,7 +838,7 @@ function buildOverlayHtml() {
 body{background:#0d0b08;color:#ddd3bc;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;padding:10px;overflow:hidden}
 .idle-note{background:rgba(232,184,75,0.08);border:1px solid #7a5e28;border-left:3px solid #e8b84b;border-radius:4px;padding:8px 10px;color:#e8b84b;font-size:12px;margin-bottom:10px;line-height:1.5;text-align:center}
 .phase-label{font-family:Cinzel,serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#7d7060;text-align:center;margin-bottom:4px}
-.big-time{font-size:48px;text-align:center;color:#e8b84b;line-height:1;margin-bottom:6px;transition:color 0.3s}
+.big-time{font-size:36px;text-align:center;color:#e8b84b;line-height:1;margin-bottom:6px;transition:color 0.3s;white-space:nowrap}
 .big-time.activity{color:#d97c30}.big-time.done{color:#5ab76a}
 .action-prompt{display:none;text-align:center;font-size:14px;color:#5ab76a;padding:6px 10px;background:rgba(90,183,106,0.1);border:1px solid #2e5e35;border-radius:4px;margin-bottom:8px;animation:pulse 0.6s ease-in-out infinite alternate}
 @keyframes pulse{from{opacity:0.7}to{opacity:1}}
@@ -825,21 +856,60 @@ td.r{text-align:right;color:#e8b84b}td.rem{text-align:right;color:#d97c30}td.ok{
 .opt-row{display:flex;align-items:center;gap:6px;margin-bottom:10px;font-family:Cinzel,serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#7d7060;cursor:pointer}
 .opt-row:hover{color:#ddd3bc}
 .opt-row input{accent-color:#e8b84b;width:12px;height:12px;cursor:pointer}
+.collapse-btn{position:fixed;top:4px;right:6px;background:transparent;border:none;color:#7d7060;cursor:pointer;font-size:18px;line-height:1;padding:0;z-index:10}
+.collapse-btn:hover{color:#ddd3bc}
 </style></head><body>
+<button class="collapse-btn" id="collapseBtn" onclick="toggleCollapse()" title="Collapse / Expand">&#8722;</button>
 <div class="idle-note" id="idleNote">&#9650; Idle in the area you will be skilling before starting the timer and start activity when timer hits 0.</div>
 <div class="opt-row" id="optRow"><input type="checkbox" id="skipCd"><label for="skipCd">Skip Countdown</label></div>
 <button class="start-btn" id="startBtn" onclick="startCountdown()">&#9654; START COUNTDOWN</button>
+<button class="close-btn" id="resetBtn" style="display:none;margin-bottom:8px;color:#cc5050;border-color:#6a2828" onclick="resetOverlay()">&#8635; RESET</button>
 <div class="phase-label" id="phaseLabel" style="display:none">STARTING IN</div>
 <div class="big-time" id="bigTimer" style="display:none">${CD}</div>
 <div class="action-prompt" id="actionPrompt">Start Activity in Microscape Now!</div>
-<div class="progress-bar" id="progBar" style="display:none"><div class="progress-fill" id="progFill" style="width:100%"></div></div>
+<div id="extraContent">
 <table><thead><tr><th>ITEM</th><th class="r">QTY</th><th class="r">DONE</th><th class="r">REM</th></tr></thead><tbody id="tbody"></tbody></table>
+<div id="progSection" style="display:none;margin-top:8px">
+<div class="progress-bar" id="progBar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:11px;font-family:Cinzel,serif;letter-spacing:1px;color:#7d7060;margin-top:3px"><span>Percent Completed</span><span id="pctLine">0.0%</span></div>
+</div>
 <button class="close-btn" onclick="window.close()">CLOSE OVERLAY</button>
+</div>
 <script>
 const items=${JSON.stringify(data.items)};
 const totalSecs=${data.totalSecs};
 const CD=${CD};
 const doubleUpFactor=${data.doubleUpFactor || 1};
+const sim=${JSON.stringify(data.simulation)};
+const SAVED=${JSON.stringify(initState)};
+function getDone(arr,t){if(!arr||arr.length===0)return 0;let lo=0,hi=arr.length/2-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(arr[mid*2]<=t)lo=mid;else hi=mid-1;}return arr[lo*2]<=t?arr[lo*2+1]:0;}
+const FP=String(totalSecs)+"_"+items.map(i=>i.name+i.qty).join("_");
+function saveState(){if(phase==="waiting")return;try{window.opener.postMessage({type:"microscape-overlay-state",state:{phase,actElapsed,elapsed,savedAt:Date.now(),fp:FP}},"*");}catch(e){}}
+function clearState(){try{window.opener.postMessage({type:"microscape-overlay-state",state:null},"*");}catch(e){}}
+function restoreUI(){
+  startBtn.style.display="none";
+  document.getElementById("optRow").style.display="none";
+  idleNote.style.display="none";
+  resetBtn.style.display="block";
+  if(phase==="countdown"){
+    phaseLabel.textContent="STARTING IN";phaseLabel.style.display="block";
+    const rc=Math.max(0,CD-elapsed);bigTimer.textContent=rc;bigTimer.style.display="block";
+    if(rc>0)ticker=setInterval(tick,1000);
+  }else if(phase==="activity"){
+    phaseLabel.textContent="TIME REMAINING";phaseLabel.style.display="block";
+    bigTimer.className="big-time activity";
+    const rem=Math.max(0,totalSecs-actElapsed);
+    bigTimer.textContent=fmt(rem);bigTimer.style.display="block";
+    progSection.style.display="block";updatePct(actElapsed);const rr=renderItems(actElapsed);remLine.textContent=rr.toLocaleString()+" rem";
+    if(actElapsed<totalSecs)ticker=setInterval(tick,1000);
+    else{phase="done";phaseLabel.textContent="COMPLETE!";bigTimer.className="big-time done";bigTimer.textContent="DONE";clearState();}
+  }else if(phase==="done"){
+    phaseLabel.textContent="COMPLETE!";phaseLabel.style.display="block";
+    bigTimer.className="big-time done";bigTimer.textContent="DONE";bigTimer.style.display="block";
+    renderItems(totalSecs);clearState();
+  }
+  window.resizeTo(320,document.body.scrollHeight+4);
+}
 let phase="waiting",elapsed=0,actElapsed=0,ticker=null;
 const bigTimer=document.getElementById("bigTimer");
 const phaseLabel=document.getElementById("phaseLabel");
@@ -848,28 +918,72 @@ const idleNote=document.getElementById("idleNote");
 const progFill=document.getElementById("progFill");
 const progBar=document.getElementById("progBar");
 const startBtn=document.getElementById("startBtn");
+const resetBtn=document.getElementById("resetBtn");
 const tbody=document.getElementById("tbody");
+const progSection=document.getElementById("progSection");
+const pctLine=document.getElementById("pctLine");
 function fmt(s){if(s<=0)return"0s";const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;if(h>0)return h+"h "+m+"m "+sc+"s";if(m>0)return m+"m "+sc+"s";return sc+"s";}
-function renderItems(a){tbody.innerHTML=items.map(it=>{const done=Math.min(it.qty,Math.floor(a/(it.secs*doubleUpFactor)));const rem=Math.max(0,it.qty-done);return"<tr><td>"+it.name+"</td><td class=\\"r\\">"+it.qty.toLocaleString()+"</td><td class=\\"r\\">"+done.toLocaleString()+"</td><td class=\\""+( rem===0?"ok":"rem")+"\\">"+ rem.toLocaleString()+"</td></tr>";}).join("");}
+function renderItems(a){
+  let totalRem=0;
+  tbody.innerHTML=items.map((it,i)=>{const done=sim[i]?getDone(sim[i],a):Math.min(it.qty,Math.floor(a/(it.secs*doubleUpFactor)));const rem=Math.max(0,it.qty-done);totalRem+=rem;return"<tr><td>"+it.name+"</td><td class=\\"r\\">"+it.qty.toLocaleString()+"</td><td class=\\"r\\">"+done.toLocaleString()+"</td><td class=\\""+( rem===0?"ok":"rem")+"\\">"+ rem.toLocaleString()+"</td></tr>";}).join("");
+  return totalRem;
+}
+function updatePct(a){const pct=Math.min(100,a/totalSecs*100);progFill.style.width=pct+"%";pctLine.textContent=pct.toFixed(1)+"%";}
 function startCountdown(){
   const skip=document.getElementById("skipCd").checked;
   startBtn.style.display="none";
   document.getElementById("optRow").style.display="none";
   idleNote.style.display="none";
+  resetBtn.style.display="block";
   if(skip){
     phase="activity";elapsed=0;actElapsed=0;
     phaseLabel.textContent="TIME REMAINING";phaseLabel.style.display="block";
     bigTimer.className="big-time activity";bigTimer.textContent=fmt(totalSecs);bigTimer.style.display="block";
-    progBar.style.display="block";renderItems(0);ticker=setInterval(tick,1000);
+    progSection.style.display="block";updatePct(0);renderItems(0);ticker=setInterval(tick,1000);
   } else {
     phase="countdown";
     phaseLabel.style.display="block";bigTimer.style.display="block";bigTimer.textContent=CD;
     ticker=setInterval(tick,1000);
   }
+  window.resizeTo(320,document.body.scrollHeight+4);
 }
-function tick(){elapsed++;if(phase==="countdown"){const rem=CD-elapsed;if(rem>0){bigTimer.textContent=rem;}else{phase="activity";elapsed=0;actElapsed=0;actionPrompt.style.display="block";phaseLabel.textContent="TIME REMAINING";bigTimer.className="big-time activity";bigTimer.textContent=fmt(totalSecs);progBar.style.display="block";setTimeout(()=>{actionPrompt.style.display="none";},3000);renderItems(0);}}else if(phase==="activity"){actElapsed++;const rem=Math.max(0,totalSecs-actElapsed);bigTimer.textContent=fmt(rem);progFill.style.width=(rem/totalSecs*100)+"%";renderItems(actElapsed);if(rem===0){phase="done";clearInterval(ticker);phaseLabel.textContent="COMPLETE!";bigTimer.className="big-time done";bigTimer.textContent="DONE";}}}
-renderItems(0);
-document.fonts.ready.then(()=>{window.resizeTo(320,document.body.scrollHeight+4);});
+function tick(){elapsed++;if(phase==="countdown"){const rem=CD-elapsed;if(rem>0){bigTimer.textContent=rem;}else{phase="activity";elapsed=0;actElapsed=0;actionPrompt.style.display="block";phaseLabel.textContent="TIME REMAINING";bigTimer.className="big-time activity";bigTimer.textContent=fmt(totalSecs);progSection.style.display="block";updatePct(0);window.resizeTo(320,document.body.scrollHeight+4);setTimeout(()=>{actionPrompt.style.display="none";},3000);renderItems(0);}}else if(phase==="activity"){actElapsed++;const rem=Math.max(0,totalSecs-actElapsed);bigTimer.textContent=fmt(rem);progFill.style.width=(rem/totalSecs*100)+"%";updatePct(actElapsed);renderItems(actElapsed);saveState();if(rem===0){phase="done";clearInterval(ticker);clearState();phaseLabel.textContent="COMPLETE!";bigTimer.className="big-time done";bigTimer.textContent="DONE";}}}
+const wasRestored=(function(){
+  try{
+    const s=SAVED;
+    if(!s)return false;
+    if(s.fp!==FP)return false;
+    if(s.phase==="activity"){
+      const rt=Math.floor((Date.now()-s.savedAt)/1000);
+      actElapsed=Math.min(totalSecs,s.actElapsed+rt);
+      phase=actElapsed>=totalSecs?"done":"activity";
+    }else if(s.phase==="countdown"){elapsed=s.elapsed;phase="countdown";}
+    else if(s.phase==="done"){phase="done";actElapsed=totalSecs;}
+    else return false;
+    restoreUI();return true;
+  }catch(e){return false;}
+})();
+if(!wasRestored){renderItems(0);document.fonts.ready.then(()=>{window.resizeTo(320,document.body.scrollHeight+4);});}
+let isCollapsed=false;
+function toggleCollapse(){
+  isCollapsed=!isCollapsed;
+  document.getElementById("extraContent").style.display=isCollapsed?"none":"";
+  document.getElementById("collapseBtn").textContent=isCollapsed?"+":"−";
+  window.resizeTo(320,document.body.scrollHeight+4);
+}
+function resetOverlay(){
+  clearInterval(ticker);ticker=null;phase="waiting";elapsed=0;actElapsed=0;clearState();
+  resetBtn.style.display="none";
+  phaseLabel.style.display="none";
+  bigTimer.style.display="none";bigTimer.className="big-time";
+  actionPrompt.style.display="none";
+  progSection.style.display="none";progFill.style.width="0%";
+  idleNote.style.display="block";
+  document.getElementById("optRow").style.display="flex";
+  startBtn.style.display="block";
+  renderItems(0);
+  document.fonts.ready.then(()=>{window.resizeTo(320,document.body.scrollHeight+4);});
+}
 <\/script></body></html>`;
 }
 
@@ -877,7 +991,7 @@ async function openOverlay() {
   if (!overlayData) { alert('Run a calculation first.'); return; }
   if (overlayWindow && !overlayWindow.closed) overlayWindow.close();
   const html = buildOverlayHtml();
-  const initH = Math.max(260, 230 + overlayData.items.length * 30);
+  const initH = Math.max(310, 280 + overlayData.items.length * 30);
   const firstOpen = !localStorage.getItem('microscape-overlay-positioned');
   const cx = Math.round((screen.width - 320) / 2);
   const cy = Math.round((screen.height - initH) / 2);
@@ -885,13 +999,13 @@ async function openOverlay() {
   if (window.documentPictureInPicture) {
     try {
       overlayWindow = await window.documentPictureInPicture.requestWindow({ width: 320, height: initH });
-      if (firstOpen) {
-        overlayWindow.moveTo(cx, cy);
-        localStorage.setItem('microscape-overlay-positioned', '1');
-      }
       overlayWindow.document.open();
       overlayWindow.document.write(html);
       overlayWindow.document.close();
+      if (firstOpen) {
+        localStorage.setItem('microscape-overlay-positioned', '1');
+        setTimeout(() => overlayWindow.moveTo(cx, cy), 150);
+      }
       return;
     } catch (e) { /* fall through to regular popup */ }
   }
@@ -923,6 +1037,9 @@ function switchInfoTab(type, btn) {
 document.getElementById('infoModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeInfoModal(); });
 
 // ---- Init ----
+window.addEventListener('beforeunload', () => {
+  if (overlayWindow && !overlayWindow.closed) overlayWindow.close();
+});
 renderPresetTabs();
 addItem(true);
 </script>
