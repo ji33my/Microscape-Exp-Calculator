@@ -1086,7 +1086,7 @@ function restoreItems(items) {
       document.getElementById('ixp-'   + id).value = item.xpPer;
       document.getElementById('iqty-'  + id).value = item.qtyOwned || '';
       document.getElementById('icost-' + id).value = item.cost     || '';
-      const s1 = document.getElementById('isecs-' + id); if (s1 && item.secs) s1.value = item.secs;
+      const s1 = document.getElementById('isecs-' + id); if (s1 && item.secs) s1.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
     } else if (item.type === 'chain') {
       addChainItem();
       const id = chainItemId;
@@ -1094,14 +1094,14 @@ function restoreItems(items) {
       document.getElementById('ixp-'         + id).value = item.xpPer;
       document.getElementById('isp-ratio-'   + id).value = item.ratio     || '';
       document.getElementById('ichain-goal-' + id).value = item.chainGoal || '';
-      const s2 = document.getElementById('isecs-' + id); if (s2 && item.secs) s2.value = item.secs;
+      const s2 = document.getElementById('isecs-' + id); if (s2 && item.secs) s2.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
     } else if (item.type === 'gather') {
       addGatherItem();
       const id = itemCount;
       document.getElementById('iname-' + id).value = item.name;
       document.getElementById('ixp-'   + id).value = item.xpPer;
       document.getElementById('igoal-' + id).value = item.qtyGoal || '';
-      const s3 = document.getElementById('isecs-' + id); if (s3 && item.secs) s3.value = item.secs;
+      const s3 = document.getElementById('isecs-' + id); if (s3 && item.secs) s3.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
     } else {
       addSecondary();
       const id = itemCount;
@@ -1110,7 +1110,7 @@ function restoreItems(items) {
       document.getElementById('iqty-'  + id).value = item.qtyOwned || '';
       document.getElementById('igoal-' + id).value = item.qtyGoal  || '';
       document.getElementById('icost-' + id).value = item.cost     || '';
-      const s4 = document.getElementById('isecs-' + id); if (s4 && item.secs) s4.value = item.secs;
+      const s4 = document.getElementById('isecs-' + id); if (s4 && item.secs) s4.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
     }
   });
   updateChainLabels();
@@ -1188,7 +1188,7 @@ function addGatherItem() {
             <label style="margin:0">SECONDS PER GATHER</label>
             <button class="info-btn" type="button" onclick="openInfoModal('gathering')">ⓘ</button>
           </div>
-          <input type="number" id="isecs-${id}" min="0.1" step="0.1" placeholder="e.g. 16">
+          <input type="text" class="mmss-input" id="isecs-${id}" placeholder="0:00">
         </div>
       </div>
       <div>
@@ -1358,6 +1358,33 @@ function xpForLevel(L) {
   return XP_TABLE[L + 1] - XP_TABLE[L];
 }
 
+// ---- MM:SS Input Helpers ----
+function formatMMSS(digits) {
+  digits = String(digits).replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+  if (digits.length === 3) return digits[0] + ':' + digits.slice(1);
+  return digits.slice(0, 2) + ':' + digits.slice(2);
+}
+function parseMMSS(val) {
+  const d = String(val || '').replace(/\D/g, '');
+  if (!d) return 0;
+  if (d.length <= 2) return parseInt(d) || 0;
+  if (d.length === 3) return parseInt(d[0]) * 60 + parseInt(d.slice(1));
+  return parseInt(d.slice(0, 2)) * 60 + parseInt(d.slice(2));
+}
+document.addEventListener('keydown', e => {
+  if (!e.target.classList.contains('mmss-input')) return;
+  const input = e.target;
+  if (e.key === 'Backspace') {
+    input.value = formatMMSS(input.value.replace(/\D/g, '').slice(0, -1));
+    e.preventDefault(); return;
+  }
+  if (!/^\d$/.test(e.key)) { e.preventDefault(); return; }
+  if (input.value.replace(/\D/g, '').length >= 4) { e.preventDefault(); return; }
+  input.value = formatMMSS(input.value.replace(/\D/g, '') + e.key);
+  e.preventDefault();
+}, true);
+
 // ---- Helpers ----
 function getPrimaryName() {
   if (!primaryItemId) return '';
@@ -1499,7 +1526,7 @@ function loadPresetData(preset) {
       document.getElementById('iqty-'   + id).value = item.qtyOwned;
       document.getElementById('icost-'  + id).value = item.cost;
       const secsEl1 = document.getElementById('isecs-' + id);
-      if (secsEl1 && item.secs) secsEl1.value = item.secs;
+      if (secsEl1 && item.secs) secsEl1.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
     } else if (item.type === 'chain') {
       addChainItem();
       const id = chainItemId;
@@ -1510,7 +1537,7 @@ function loadPresetData(preset) {
       const chainCostEl = document.getElementById('icost-' + id);
       if (chainCostEl) chainCostEl.value = item.cost;
       const secsEl2 = document.getElementById('isecs-' + id);
-      if (secsEl2 && item.secs) secsEl2.value = item.secs;
+      if (secsEl2 && item.secs) secsEl2.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
     } else if (item.type === 'gather') {
       addGatherItem();
       const id = itemCount;
@@ -1518,7 +1545,7 @@ function loadPresetData(preset) {
       document.getElementById('ixp-'   + id).value = item.xpPer;
       document.getElementById('igoal-' + id).value = item.qtyGoal || '';
       const secsEl3 = document.getElementById('isecs-' + id);
-      if (secsEl3 && item.secs) secsEl3.value = item.secs;
+      if (secsEl3 && item.secs) secsEl3.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
     } else {
       addSecondary();
       const id = itemCount;
@@ -1528,7 +1555,7 @@ function loadPresetData(preset) {
       document.getElementById('igoal-'  + id).value = item.qtyGoal;
       document.getElementById('icost-'  + id).value = item.cost;
       const secsEl4 = document.getElementById('isecs-' + id);
-      if (secsEl4 && item.secs) secsEl4.value = item.secs;
+      if (secsEl4 && item.secs) secsEl4.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
     }
   });
 
@@ -1595,7 +1622,7 @@ function addPrimary() {
             <label style="margin:0">SECONDS PER GATHER</label>
             <button class="info-btn" type="button" onclick="openInfoModal('gathering')">ⓘ</button>
           </div>
-          <input type="number" id="isecs-${id}" min="0.1" step="0.1" placeholder="e.g. 16">
+          <input type="text" class="mmss-input" id="isecs-${id}" placeholder="0:00">
         </div>` : ''}
       </div>
       <div>
@@ -1619,7 +1646,7 @@ function addPrimary() {
         <label style="margin:0">SECONDS PER CRAFT</label>
         <button class="info-btn" type="button" onclick="openInfoModal('crafting')">ⓘ</button>
       </div>
-      <input type="number" id="isecs-${id}" min="0.1" step="0.1" placeholder="e.g. 3">
+      <input type="text" class="mmss-input" id="isecs-${id}" placeholder="0:00">
     </div>` : ''}
   `;
   document.getElementById('itemsList').appendChild(div);
@@ -1672,7 +1699,7 @@ function addChainItem() {
         <label style="margin:0">SECONDS PER CRAFT</label>
         <button class="info-btn" type="button" onclick="openInfoModal('crafting')">ⓘ</button>
       </div>
-      <input type="number" id="isecs-${id}" min="0.1" step="0.1" placeholder="e.g. 3">
+      <input type="text" class="mmss-input" id="isecs-${id}" placeholder="0:00">
     </div>
   `;
 
@@ -1733,7 +1760,7 @@ function addSecondary() {
         <label style="margin:0">SECONDS PER CRAFT</label>
         <button class="info-btn" type="button" onclick="openInfoModal('crafting')">ⓘ</button>
       </div>
-      <input type="number" id="isecs-${id}" min="0.1" step="0.1" placeholder="e.g. 3">
+      <input type="text" class="mmss-input" id="isecs-${id}" placeholder="0:00">
     </div>
   `;
   document.getElementById('itemsList').appendChild(div);
@@ -1866,7 +1893,8 @@ function calculate() {
     const xpPer    = parseFloat(document.getElementById('ixp-'   + id)?.value);
     const qtyOwned = parseInt(document.getElementById('iqty-'  + id)?.value)  || 0;
     const cost     = parseFloat(document.getElementById('icost-' + id)?.value) || 0;
-    const secs     = timeEnabled ? (parseFloat(document.getElementById('isecs-' + id)?.value) || 0) : 0;
+    const rawSecs  = timeEnabled ? parseMMSS(document.getElementById('isecs-' + id)?.value || '') : 0;
+    const secs     = rawSecs > 0 ? rawSecs + 2 : 0;
     if (isNaN(xpPer) || xpPer <= 0) return;
 
     if (type === 'primary') {
