@@ -474,9 +474,30 @@ let activePresetId = null;
 let overlayData = null;
 let overlayWindow = null;
 let overlayState = null;
-window.addEventListener('message', e => {
-  if (e.data && e.data.type === 'microscape-overlay-state') overlayState = e.data.state;
-});
+let overlayPoller = null;
+
+function startOverlayPoller() {
+  if (overlayPoller) clearInterval(overlayPoller);
+  overlayPoller = setInterval(() => {
+    if (!overlayWindow || overlayWindow.closed) {
+      clearInterval(overlayPoller);
+      overlayPoller = null;
+      return;
+    }
+    try {
+      const p = overlayWindow.phase;
+      if (p && p !== 'waiting') {
+        overlayState = {
+          phase: p,
+          actElapsed: overlayWindow.actElapsed,
+          elapsed: overlayWindow.elapsed,
+          savedAt: Date.now(),
+          fp: overlayWindow.FP
+        };
+      }
+    } catch(e) {}
+  }, 1000);
+}
 let storageMode = localStorage.getItem('microscape-time-storage-mode') || 'local';
 let presets = loadPresetsFromStorage();
 
@@ -884,8 +905,8 @@ const sim=${JSON.stringify(data.simulation)};
 const SAVED=${JSON.stringify(initState)};
 function getDone(arr,t){if(!arr||arr.length===0)return 0;let lo=0,hi=arr.length/2-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(arr[mid*2]<=t)lo=mid;else hi=mid-1;}return arr[lo*2]<=t?arr[lo*2+1]:0;}
 const FP=String(totalSecs)+"_"+items.map(i=>i.name+i.qty).join("_");
-function saveState(){if(phase==="waiting")return;try{window.opener.postMessage({type:"microscape-overlay-state",state:{phase,actElapsed,elapsed,savedAt:Date.now(),fp:FP}},"*");}catch(e){}}
-function clearState(){try{window.opener.postMessage({type:"microscape-overlay-state",state:null},"*");}catch(e){}}
+function saveState(){}
+function clearState(){try{if(window.opener)window.opener.overlayState=null;}catch(e){}}
 function restoreUI(){
   startBtn.style.display="none";
   document.getElementById("optRow").style.display="none";
@@ -1006,6 +1027,7 @@ async function openOverlay() {
         localStorage.setItem('microscape-overlay-positioned', '1');
         setTimeout(() => overlayWindow.moveTo(cx, cy), 150);
       }
+      startOverlayPoller();
       return;
     } catch (e) { /* fall through to regular popup */ }
   }
@@ -1017,6 +1039,7 @@ async function openOverlay() {
   overlayWindow.document.open();
   overlayWindow.document.write(html);
   overlayWindow.document.close();
+  startOverlayPoller();
 }
 
 // ---- Info Modal ----
