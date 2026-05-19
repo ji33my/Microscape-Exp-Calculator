@@ -235,6 +235,16 @@
     flex-shrink: 0;
   }
   .info-btn:hover { color: var(--gold); }
+  .tip-wrap { position: relative; display: inline-flex; align-items: center; }
+  .tip-wrap .tip {
+    display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%); background: var(--panel2);
+    border: 1px solid var(--border-light); color: var(--text);
+    font-size: 12px; font-weight: 700; font-family: 'Nunito', sans-serif;
+    padding: 5px 9px; border-radius: 4px; white-space: nowrap;
+    z-index: 100; pointer-events: none;
+  }
+  .tip-wrap:hover .tip { display: block; }
 
   @keyframes fadeOutTooltip {
     0%   { opacity: 1; }
@@ -897,6 +907,21 @@
   </div>
 </div>
 
+<!-- Craft Ratio Modal -->
+<div class="modal-overlay" id="craftRatioModal">
+  <div class="modal-box" style="max-width:380px">
+    <button class="modal-close-x" onclick="closeCraftRatioModal()">&#x2715;</button>
+    <div class="panel-title">CRAFT RATIO</div>
+    <p style="font-size:15px;color:var(--text);line-height:1.6;margin-bottom:14px">Use when one action consumes or produces more than one item.</p>
+    <div style="font-size:14px;color:var(--text-dim);line-height:2">
+      <b style="color:var(--text)">1 Bronze Bar → 10 Arrow Tips</b><br>Uses: 1 &nbsp;&middot;&nbsp; Makes: 10<br>
+      <b style="color:var(--text)">10 Buckets → 10 Water Buckets</b><br>Uses: 10 &nbsp;&middot;&nbsp; Makes: 10<br>
+      <b style="color:var(--text)">1 Bucket → 1 Water Bucket</b><br>Uses: 1 &nbsp;&middot;&nbsp; Makes: 1 <span style="color:var(--text-dim)">(standard, no ratio needed)</span>
+    </div>
+    <button class="btn btn-dim" onclick="closeCraftRatioModal()" style="width:100%;margin-top:14px">CLOSE</button>
+  </div>
+</div>
+
 <!-- Info Modal -->
 <div class="modal-overlay" id="infoModal">
   <div class="modal-box" style="max-width:360px;padding:14px">
@@ -941,6 +966,7 @@
 
 <h1>MICROSCAPE</h1>
 <p class="subtitle">XP &amp; Item Calculator</p>
+<p style="text-align:center;font-family:'Cinzel',serif;font-size:12px;color:var(--text-dim);letter-spacing:2px;margin-bottom:16px;margin-top:-18px">v<span id="versionDisplay"></span></p>
 
 <div class="storage-btn-wrap">
   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -988,29 +1014,40 @@
       <span>ENABLE TIME ESTIMATE</span>
     </label>
     <div id="timeOptions" style="display:none;margin-top:12px">
-      <div class="row-2b">
-        <div>
-          <label>DOUBLE UP CHANCE <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
-          <div class="pct-wrap">
-            <input type="number" id="doubleUpChance" min="0" max="100" step="0.1" placeholder="0">
-            <span class="pct-suffix">%</span>
-          </div>
+      <div>
+        <label>DOUBLE UP CHANCE <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
+        <div class="pct-wrap" style="max-width:260px">
+          <input type="number" id="doubleUpChance" min="0" max="100" step="0.1" placeholder="0">
+          <span class="pct-suffix">%</span>
         </div>
-        <div style="display:flex;flex-direction:column;justify-content:center;gap:8px">
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-top:12px">
+        <div style="display:flex;align-items:center;gap:5px">
           <label class="check-label">
             <input type="checkbox" id="shellPockets">
             <span class="check-box"></span>
             <span>SHELL POCKETS</span>
           </label>
+          <div class="tip-wrap"><button class="info-btn" type="button" onmousedown="this.blur()">ⓘ</button><span class="tip">+2 bag slots (base 25)</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px">
           <label class="check-label">
             <input type="checkbox" id="gildedPockets">
             <span class="check-box"></span>
             <span>GILDED POCKETS</span>
           </label>
-          <div class="time-note">Shell +2 · Gilded +3 slots</div>
+          <div class="tip-wrap"><button class="info-btn" type="button" onmousedown="this.blur()">ⓘ</button><span class="tip">+3 bag slots (base 25)</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <label class="check-label">
+            <input type="checkbox" id="chillSpot">
+            <span class="check-box"></span>
+            <span>CHILL SPOT BANKING</span>
+          </label>
+          <div class="tip-wrap"><button class="info-btn" type="button" onmousedown="this.blur()">ⓘ</button><span class="tip">18s per bank trip instead of 46s</span></div>
         </div>
       </div>
-      <div class="time-note" style="margin-top:10px">⚠ Time calculation is currently not accurate for Chill Spot banking, and does not account for some abilities that would speed up item acquisition and exp gains.</div>
+      <div class="time-note" style="margin-top:8px">⚠ Does not account for some abilities that would speed up item acquisition and exp gains.</div>
     </div>
   </div>
 </div>
@@ -1069,6 +1106,15 @@ function closeInfoModal() {
   document.getElementById('infoModal').classList.remove('open');
 }
 
+function openCraftRatioModal() { document.getElementById('craftRatioModal').classList.add('open'); }
+function closeCraftRatioModal() { document.getElementById('craftRatioModal').classList.remove('open'); }
+document.getElementById('craftRatioModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeCraftRatioModal(); });
+
+function toggleCraftRatio(id) {
+  const on = document.getElementById('icraftratio-' + id).checked;
+  document.getElementById('icraftratio-fields-' + id).style.display = on ? 'grid' : 'none';
+}
+
 let currentMode = 'crafting';
 const modeStates = { crafting: null, gathering: null };
 
@@ -1087,6 +1133,7 @@ function restoreItems(items) {
       document.getElementById('iqty-'  + id).value = item.qtyOwned || '';
       document.getElementById('icost-' + id).value = item.cost     || '';
       const s1 = document.getElementById('isecs-' + id); if (s1 && item.secs) s1.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
+      if (item.craftRatio) { const cr1 = document.getElementById('icraftratio-' + id); if (cr1) { cr1.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else if (item.type === 'chain') {
       addChainItem();
       const id = chainItemId;
@@ -1095,6 +1142,7 @@ function restoreItems(items) {
       document.getElementById('isp-ratio-'   + id).value = item.ratio     || '';
       document.getElementById('ichain-goal-' + id).value = item.chainGoal || '';
       const s2 = document.getElementById('isecs-' + id); if (s2 && item.secs) s2.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
+      if (item.craftRatio) { const cr2 = document.getElementById('icraftratio-' + id); if (cr2) { cr2.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else if (item.type === 'gather') {
       addGatherItem();
       const id = itemCount;
@@ -1102,6 +1150,7 @@ function restoreItems(items) {
       document.getElementById('ixp-'   + id).value = item.xpPer;
       document.getElementById('igoal-' + id).value = item.qtyGoal || '';
       const s3 = document.getElementById('isecs-' + id); if (s3 && item.secs) s3.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
+      if (item.craftRatio) { const cr3 = document.getElementById('icraftratio-' + id); if (cr3) { cr3.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else {
       addSecondary();
       const id = itemCount;
@@ -1111,6 +1160,7 @@ function restoreItems(items) {
       document.getElementById('igoal-' + id).value = item.qtyGoal  || '';
       document.getElementById('icost-' + id).value = item.cost     || '';
       const s4 = document.getElementById('isecs-' + id); if (s4 && item.secs) s4.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
+      if (item.craftRatio) { const cr4 = document.getElementById('icraftratio-' + id); if (cr4) { cr4.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     }
   });
   updateChainLabels();
@@ -1200,6 +1250,18 @@ function addGatherItem() {
       <label>QTY GOAL <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
       <input type="number" id="igoal-${id}" min="0" placeholder="e.g. 500">
     </div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
+      <label class="check-label" style="margin:0">
+        <input type="checkbox" id="icraftratio-${id}" onchange="toggleCraftRatio(${id})">
+        <span class="check-box"></span>
+        <span>CRAFT RATIO</span>
+      </label>
+      <button class="info-btn" type="button" onclick="openCraftRatioModal()">ⓘ</button>
+    </div>
+    <div id="icraftratio-fields-${id}" style="display:none;margin-top:8px" class="row-2b">
+      <div><label>USES PER ACTION</label><input type="number" id="iuses-${id}" min="1" placeholder="1"></div>
+      <div><label>MAKES PER ACTION</label><input type="number" id="imakes-${id}" min="1" placeholder="1"></div>
+    </div>
   `;
   document.getElementById('itemsList').appendChild(div);
   applyTimeFieldVisibility(div);
@@ -1236,6 +1298,7 @@ function clearAll() {
   document.getElementById('doubleUpChance').value = '';
   document.getElementById('shellPockets').checked  = false;
   document.getElementById('gildedPockets').checked = false;
+  document.getElementById('chillSpot').checked     = false;
   toggleTimeOptions();
   switchMode(currentMode, true);
 
@@ -1243,6 +1306,9 @@ function clearAll() {
   activePresetId = null;
   renderPresetTabs();
 }
+
+const VERSION = '1.10';
+document.getElementById('versionDisplay').textContent = VERSION;
 
 let itemCount = 0;
 let chainItemId = null;
@@ -1469,7 +1535,10 @@ function captureFormState() {
       name:  document.getElementById('iname-'  + id)?.value || '',
       xpPer: document.getElementById('ixp-'    + id)?.value || '',
       cost:  document.getElementById('icost-'  + id)?.value || '',
-      secs:  document.getElementById('isecs-'  + id)?.value || ''
+      secs:       document.getElementById('isecs-'       + id)?.value || '',
+      craftRatio: document.getElementById('icraftratio-' + id)?.checked || false,
+      makes:      document.getElementById('imakes-'      + id)?.value || '',
+      uses:       document.getElementById('iuses-'       + id)?.value || ''
     };
     if (type === 'primary') {
       item.qtyOwned = document.getElementById('iqty-' + id)?.value || '';
@@ -1493,6 +1562,7 @@ function captureFormState() {
     doubleUp:      document.getElementById('doubleUpChance').value,
     shellPockets:  document.getElementById('shellPockets').checked,
     gildedPockets: document.getElementById('gildedPockets').checked,
+    chillSpot:     document.getElementById('chillSpot').checked,
     mode:         currentMode,
     items
   };
@@ -1514,6 +1584,7 @@ function loadPresetData(preset) {
   document.getElementById('doubleUpChance').value = preset.doubleUp || '';
   document.getElementById('shellPockets').checked  = !!preset.shellPockets;
   document.getElementById('gildedPockets').checked = !!preset.gildedPockets;
+  document.getElementById('chillSpot').checked     = !!preset.chillSpot;
   toggleTimeOptions();
   switchMode(preset.mode || 'crafting', true);
 
@@ -1527,6 +1598,7 @@ function loadPresetData(preset) {
       document.getElementById('icost-'  + id).value = item.cost;
       const secsEl1 = document.getElementById('isecs-' + id);
       if (secsEl1 && item.secs) secsEl1.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
+      if (item.craftRatio) { const cr = document.getElementById('icraftratio-' + id); if (cr) { cr.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else if (item.type === 'chain') {
       addChainItem();
       const id = chainItemId;
@@ -1538,6 +1610,7 @@ function loadPresetData(preset) {
       if (chainCostEl) chainCostEl.value = item.cost;
       const secsEl2 = document.getElementById('isecs-' + id);
       if (secsEl2 && item.secs) secsEl2.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
+      if (item.craftRatio) { const cr = document.getElementById('icraftratio-' + id); if (cr) { cr.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else if (item.type === 'gather') {
       addGatherItem();
       const id = itemCount;
@@ -1546,6 +1619,7 @@ function loadPresetData(preset) {
       document.getElementById('igoal-' + id).value = item.qtyGoal || '';
       const secsEl3 = document.getElementById('isecs-' + id);
       if (secsEl3 && item.secs) secsEl3.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
+      if (item.craftRatio) { const cr = document.getElementById('icraftratio-' + id); if (cr) { cr.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else {
       addSecondary();
       const id = itemCount;
@@ -1556,6 +1630,7 @@ function loadPresetData(preset) {
       document.getElementById('icost-'  + id).value = item.cost;
       const secsEl4 = document.getElementById('isecs-' + id);
       if (secsEl4 && item.secs) secsEl4.value = formatMMSS(String(item.secs).replace(/\D/g, ''));
+      if (item.craftRatio) { const cr = document.getElementById('icraftratio-' + id); if (cr) { cr.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     }
   });
 
@@ -1648,6 +1723,18 @@ function addPrimary() {
       </div>
       <input type="text" class="mmss-input" id="isecs-${id}" placeholder="0:00">
     </div>` : ''}
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
+      <label class="check-label" style="margin:0">
+        <input type="checkbox" id="icraftratio-${id}" onchange="toggleCraftRatio(${id})">
+        <span class="check-box"></span>
+        <span>CRAFT RATIO</span>
+      </label>
+      <button class="info-btn" type="button" onclick="openCraftRatioModal()">ⓘ</button>
+    </div>
+    <div id="icraftratio-fields-${id}" style="display:none;margin-top:8px" class="row-2b">
+      <div><label>USES PER ACTION</label><input type="number" id="iuses-${id}" min="1" placeholder="1"></div>
+      <div><label>MAKES PER ACTION</label><input type="number" id="imakes-${id}" min="1" placeholder="1"></div>
+    </div>
   `;
   document.getElementById('itemsList').appendChild(div);
   applyTimeFieldVisibility(div);
@@ -1700,6 +1787,18 @@ function addChainItem() {
         <button class="info-btn" type="button" onclick="openInfoModal('crafting')">ⓘ</button>
       </div>
       <input type="text" class="mmss-input" id="isecs-${id}" placeholder="0:00">
+    </div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
+      <label class="check-label" style="margin:0">
+        <input type="checkbox" id="icraftratio-${id}" onchange="toggleCraftRatio(${id})">
+        <span class="check-box"></span>
+        <span>CRAFT RATIO</span>
+      </label>
+      <button class="info-btn" type="button" onclick="openCraftRatioModal()">ⓘ</button>
+    </div>
+    <div id="icraftratio-fields-${id}" style="display:none;margin-top:8px" class="row-2b">
+      <div><label>USES PER ACTION</label><input type="number" id="iuses-${id}" min="1" placeholder="1"></div>
+      <div><label>MAKES PER ACTION</label><input type="number" id="imakes-${id}" min="1" placeholder="1"></div>
     </div>
   `;
 
@@ -1761,6 +1860,18 @@ function addSecondary() {
         <button class="info-btn" type="button" onclick="openInfoModal('crafting')">ⓘ</button>
       </div>
       <input type="text" class="mmss-input" id="isecs-${id}" placeholder="0:00">
+    </div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
+      <label class="check-label" style="margin:0">
+        <input type="checkbox" id="icraftratio-${id}" onchange="toggleCraftRatio(${id})">
+        <span class="check-box"></span>
+        <span>CRAFT RATIO</span>
+      </label>
+      <button class="info-btn" type="button" onclick="openCraftRatioModal()">ⓘ</button>
+    </div>
+    <div id="icraftratio-fields-${id}" style="display:none;margin-top:8px" class="row-2b">
+      <div><label>USES PER ACTION</label><input type="number" id="iuses-${id}" min="1" placeholder="1"></div>
+      <div><label>MAKES PER ACTION</label><input type="number" id="imakes-${id}" min="1" placeholder="1"></div>
     </div>
   `;
   document.getElementById('itemsList').appendChild(div);
@@ -1876,6 +1987,7 @@ function calculate() {
   const doubleUpFactor = 1 - doubleUpChance / 100;
   const bagSize        = (document.getElementById('shellPockets').checked  ? 2 : 0) +
                          (document.getElementById('gildedPockets').checked ? 3 : 0) + 25;
+  const bankingTime    = timeEnabled && document.getElementById('chillSpot').checked ? 18 : 46;
 
   const warnEl    = document.getElementById('warningBox');
   const costEl    = document.getElementById('costSummary');
@@ -1893,22 +2005,25 @@ function calculate() {
     const xpPer    = parseFloat(document.getElementById('ixp-'   + id)?.value);
     const qtyOwned = parseInt(document.getElementById('iqty-'  + id)?.value)  || 0;
     const cost     = parseFloat(document.getElementById('icost-' + id)?.value) || 0;
-    const rawSecs  = timeEnabled ? parseMMSS(document.getElementById('isecs-' + id)?.value || '') : 0;
-    const secs     = rawSecs > 0 ? rawSecs + 2 : 0;
+    const rawSecs      = timeEnabled ? parseMMSS(document.getElementById('isecs-' + id)?.value || '') : 0;
+    const secs         = rawSecs > 0 ? rawSecs + 2 : 0;
+    const craftRatioOn = document.getElementById('icraftratio-' + id)?.checked;
+    const makes        = craftRatioOn ? (parseInt(document.getElementById('imakes-' + id)?.value) || 1) : 1;
+    const uses         = craftRatioOn ? (parseInt(document.getElementById('iuses-'  + id)?.value) || 1) : 1;
     if (isNaN(xpPer) || xpPer <= 0) return;
 
     if (type === 'primary') {
-      primaryItem = { name, xpPer, qtyOwned, cost, secs };
+      primaryItem = { name, xpPer, qtyOwned, cost, secs, makes, uses };
     } else if (type === 'chain') {
       const ratio       = parseInt(document.getElementById('isp-ratio-'   + id)?.value) || 1;
       const chainGoalV  = document.getElementById('ichain-goal-' + id)?.value;
       const qtyGoal     = (chainGoalV && !isNaN(parseInt(chainGoalV))) ? parseInt(chainGoalV) : null;
-      secondPrimaryItem = { name, xpPer, qtyOwned: 0, ratio, qtyGoal, cost, secs };
+      secondPrimaryItem = { name, xpPer, qtyOwned: 0, ratio, qtyGoal, cost, secs, makes, uses };
     } else if (type === 'gather') {
       const goalV   = document.getElementById('igoal-' + id)?.value;
       const qtyGoal = parseInt(goalV);
       if (goalV && !isNaN(qtyGoal) && qtyGoal > 0) {
-        cappedItems.push({ name, xpPer, qtyOwned: 0, qtyGoal, cost: 0, secs });
+        cappedItems.push({ name, xpPer, qtyOwned: 0, qtyGoal, cost: 0, secs, makes, uses });
       }
     } else {
       const goalV   = document.getElementById('igoal-' + id)?.value;
@@ -1917,7 +2032,7 @@ function calculate() {
         warnEl.innerHTML += `<div class="warning-box">&#9888; "${name}" needs a QTY GOAL to be included.</div>`;
         return;
       }
-      cappedItems.push({ name, xpPer, qtyOwned, qtyGoal, cost, secs });
+      cappedItems.push({ name, xpPer, qtyOwned, qtyGoal, cost, secs, makes, uses });
     }
   });
 
@@ -2033,7 +2148,7 @@ function calculate() {
 
   // Total cost
   let totalCost = 0;
-  results.forEach(r => { if (r.item.cost > 0 && r.craftCount > 0) totalCost += r.item.cost * r.craftCount; });
+  results.forEach(r => { if (r.item.cost > 0 && r.craftCount > 0) totalCost += r.item.cost * r.craftCount * (r.item.uses || 1); });
   if (totalCost > 0) {
     const totalXP  = results.reduce((s, r) => s + r.xpContributed, 0);
     const gpPerXP  = totalXP > 0 ? (totalCost / totalXP).toFixed(2) : '—';
@@ -2077,7 +2192,7 @@ function calculate() {
     const showSegTime = timeEnabled && segSecs > 0 && !r.ownedCoversGoal && r.craftCount > 0;
     const effectiveCount = r.craftCount * doubleUpFactor;
     const segTimeStr  = showSegTime
-      ? formatTime(Math.round(effectiveCount * segSecs + Math.floor(r.craftCount / bagSize) * 46))
+      ? formatTime(Math.round(effectiveCount * segSecs + Math.floor(r.craftCount / bagSize) * bankingTime))
       : null;
     const metaParts = [segTimeStr ?? `${r.item.xpPer.toLocaleString()} XP each`];
     if (r.ownedCoversGoal) {
@@ -2086,8 +2201,14 @@ function calculate() {
       metaParts.push(`${r.item.qtyOwned.toLocaleString()} owned already counted`);
     }
 
+    const itemUses = r.item.uses || 1;
+    const itemMakes = r.item.makes || 1;
+    const totalCostGp = r.item.cost > 0 ? r.item.cost * r.craftCount * itemUses : 0;
     const costLine = (r.item.cost > 0 && r.craftCount > 0)
-      ? `<div class="result-cost-line">${(r.item.cost * r.craftCount).toLocaleString()} gp &nbsp;&middot;&nbsp; ${r.item.cost.toLocaleString()} gp each</div>`
+      ? `<div class="result-cost-line">${totalCostGp.toLocaleString()} gp total &nbsp;&middot;&nbsp; ${r.item.cost.toLocaleString()} gp${itemUses > 1 ? `/input (×${itemUses} per action)` : ' each'}</div>`
+      : '';
+    const resultingItems = itemMakes > 1
+      ? `<div class="result-meta" style="color:var(--green)">${(r.craftCount * itemMakes).toLocaleString()} ${r.item.name} produced (${itemMakes}× per action)</div>`
       : '';
 
     const rightContent = r.ownedCoversGoal
@@ -2101,6 +2222,7 @@ function calculate() {
           <div class="result-item-name">${r.item.name}</div>
           <div class="result-xp-total">${r.xpContributed.toLocaleString()} XP</div>
           <div class="result-meta">${metaParts.join(' &nbsp;&middot;&nbsp; ')}</div>
+          ${resultingItems}
           ${costLine}
         </div>
         <div class="result-right">
@@ -2117,7 +2239,7 @@ function calculate() {
       let totalSecs = 0, totalBankTrips = 0;
       timedResults.forEach(r => {
         const trips = Math.floor(r.craftCount / bagSize);
-        totalSecs      += Math.round(r.craftCount * doubleUpFactor * r.item.secs + trips * 46);
+        totalSecs      += Math.round(r.craftCount * doubleUpFactor * r.item.secs + trips * bankingTime);
         totalBankTrips += trips;
       });
       document.getElementById('summaryBox').innerHTML += `

@@ -228,6 +228,16 @@
     border: none; cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0;
   }
   .info-btn:hover { color: var(--gold); }
+  .tip-wrap { position: relative; display: inline-flex; align-items: center; }
+  .tip-wrap .tip {
+    display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%); background: var(--panel2);
+    border: 1px solid var(--border-light); color: var(--text);
+    font-size: 12px; font-weight: 700; font-family: 'Nunito', sans-serif;
+    padding: 5px 9px; border-radius: 4px; white-space: nowrap;
+    z-index: 100; pointer-events: none;
+  }
+  .tip-wrap:hover .tip { display: block; }
 
   .modal-close-x {
     position: absolute; top: 10px; right: 14px; font-size: 20px;
@@ -360,6 +370,21 @@
   </div>
 </div>
 
+<!-- Craft Ratio Modal -->
+<div class="modal-overlay" id="craftRatioModal">
+  <div class="modal-box" style="max-width:380px">
+    <button class="modal-close-x" onclick="closeCraftRatioModal()">&#x2715;</button>
+    <div class="panel-title">CRAFT RATIO</div>
+    <p style="font-size:15px;color:var(--text);line-height:1.6;margin-bottom:14px">Use when one action consumes or produces more than one item.</p>
+    <div style="font-size:14px;color:var(--text-dim);line-height:2">
+      <b style="color:var(--text)">1 Bronze Bar → 10 Arrow Tips</b><br>Uses: 1 &nbsp;&middot;&nbsp; Makes: 10<br>
+      <b style="color:var(--text)">10 Buckets → 10 Water Buckets</b><br>Uses: 10 &nbsp;&middot;&nbsp; Makes: 10<br>
+      <b style="color:var(--text)">1 Bucket → 1 Water Bucket</b><br>Uses: 1 &nbsp;&middot;&nbsp; Makes: 1 <span style="color:var(--text-dim)">(standard, no ratio needed)</span>
+    </div>
+    <button class="btn btn-dim" onclick="closeCraftRatioModal()" style="width:100%;margin-top:14px">CLOSE</button>
+  </div>
+</div>
+
 <!-- Save Preset Modal -->
 <div class="modal-overlay" id="saveModal">
   <div class="modal-box">
@@ -421,6 +446,7 @@
 
 <h1>MICROSCAPE</h1>
 <p class="subtitle">Time Calculator</p>
+<p style="text-align:center;font-family:'Cinzel',serif;font-size:12px;color:var(--text-dim);letter-spacing:2px;margin-bottom:16px;margin-top:-18px">v<span id="versionDisplay"></span></p>
 
 <div class="storage-btn-wrap">
   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -432,29 +458,40 @@
 <!-- Settings -->
 <div class="panel">
   <div class="panel-title">SETTINGS</div>
-  <div class="settings-grid">
-    <div>
-      <label>DOUBLE UP CHANCE <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
-      <div class="pct-wrap">
-        <input type="number" id="doubleUpChance" min="0" max="100" step="0.1" placeholder="0">
-        <span class="pct-suffix">%</span>
-      </div>
+  <div>
+    <label>DOUBLE UP CHANCE <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
+    <div class="pct-wrap" style="max-width:260px">
+      <input type="number" id="doubleUpChance" min="0" max="100" step="0.1" placeholder="0">
+      <span class="pct-suffix">%</span>
     </div>
-    <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding-bottom:2px">
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-top:12px">
+    <div style="display:flex;align-items:center;gap:5px">
       <label class="check-label">
         <input type="checkbox" id="shellPockets">
         <span class="check-box"></span>
         <span>SHELL POCKETS</span>
       </label>
+      <div class="tip-wrap"><button class="info-btn" type="button" onmousedown="this.blur()">ⓘ</button><span class="tip">+2 bag slots (base 25)</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px">
       <label class="check-label">
         <input type="checkbox" id="gildedPockets">
         <span class="check-box"></span>
         <span>GILDED POCKETS</span>
       </label>
-      <div class="time-note">Shell +2 &middot; Gilded +3 slots &middot; Base 25</div>
+      <div class="tip-wrap"><button class="info-btn" type="button" onmousedown="this.blur()">ⓘ</button><span class="tip">+3 bag slots (base 25)</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px">
+      <label class="check-label">
+        <input type="checkbox" id="chillSpot">
+        <span class="check-box"></span>
+        <span>CHILL SPOT BANKING</span>
+      </label>
+      <div class="tip-wrap"><button class="info-btn" type="button" onmousedown="this.blur()">ⓘ</button><span class="tip">18s per bank trip instead of 46s</span></div>
     </div>
   </div>
-  <div class="time-note" style="margin-top:10px">⚠ Time calculation is currently not accurate for Chill Spot banking, and does not account for some abilities that would speed up item acquisition and exp gains.</div>
+  <div class="time-note" style="margin-top:8px">⚠ Does not account for some abilities that would speed up item acquisition and exp gains.</div>
 </div>
 
 <!-- Items -->
@@ -488,6 +525,9 @@
 </div>
 
 <script>
+const VERSION = '1.10';
+document.getElementById('versionDisplay').textContent = VERSION;
+
 let itemCount = 0;
 let activePresetId = null;
 let overlayData = null;
@@ -697,17 +737,21 @@ function captureFormState() {
   document.querySelectorAll('.item-block').forEach(block => {
     const id = block.dataset.itemId;
     items.push({
-      name: document.getElementById('tname-' + id)?.value || '',
-      qty:  document.getElementById('tqty-'  + id)?.value || '',
-      secs: document.getElementById('tsecs-' + id)?.value || '',
-      cost: document.getElementById('tcost-' + id)?.value || '',
-      isPrimary: block.classList.contains('is-primary')
+      name:       document.getElementById('tname-'       + id)?.value || '',
+      qty:        document.getElementById('tqty-'        + id)?.value || '',
+      secs:       document.getElementById('tsecs-'       + id)?.value || '',
+      cost:       document.getElementById('tcost-'       + id)?.value || '',
+      craftRatio: document.getElementById('tcraftratio-' + id)?.checked || false,
+      makes:      document.getElementById('tmakes-'      + id)?.value || '',
+      uses:       document.getElementById('tuses-'       + id)?.value || '',
+      isPrimary:  block.classList.contains('is-primary')
     });
   });
   return {
     doubleUp:     document.getElementById('doubleUpChance').value,
     shellPockets: document.getElementById('shellPockets').checked,
     gildedPockets:document.getElementById('gildedPockets').checked,
+    chillSpot:    document.getElementById('chillSpot').checked,
     items
   };
 }
@@ -747,6 +791,7 @@ function loadPreset(id) {
   document.getElementById('doubleUpChance').value   = preset.doubleUp || '';
   document.getElementById('shellPockets').checked   = !!preset.shellPockets;
   document.getElementById('gildedPockets').checked  = !!preset.gildedPockets;
+  document.getElementById('chillSpot').checked      = !!preset.chillSpot;
   preset.items.forEach(item => {
     addItem(item.isPrimary);
     const id2 = itemCount;
@@ -754,6 +799,12 @@ function loadPreset(id) {
     document.getElementById('tqty-'  + id2).value = item.qty;
     document.getElementById('tsecs-' + id2).value = formatMMSS(String(item.secs || '').replace(/\D/g, ''));
     document.getElementById('tcost-' + id2).value = item.cost;
+    if (item.craftRatio) {
+      document.getElementById('tcraftratio-' + id2).checked = true;
+      toggleCraftRatio(id2);
+      document.getElementById('tmakes-' + id2).value = item.makes || '';
+      document.getElementById('tuses-'  + id2).value = item.uses  || '';
+    }
   });
   document.getElementById('results').classList.remove('visible');
   const itemsBody = document.getElementById('itemsBody');
@@ -818,6 +869,24 @@ function addItem(isPrimary = false) {
         <input type="number" id="tcost-${id}" min="0" placeholder="0">
       </div>
     </div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
+      <label class="check-label" style="margin:0">
+        <input type="checkbox" id="tcraftratio-${id}" onchange="toggleCraftRatio(${id})">
+        <span class="check-box"></span>
+        <span>CRAFT RATIO</span>
+      </label>
+      <button class="info-btn" type="button" onclick="openCraftRatioModal()">ⓘ</button>
+    </div>
+    <div id="tcraftratio-fields-${id}" style="display:none;margin-top:8px" class="row-2b">
+      <div>
+        <label>USES PER ACTION</label>
+        <input type="number" id="tuses-${id}" min="1" placeholder="1">
+      </div>
+      <div>
+        <label>MAKES PER ACTION</label>
+        <input type="number" id="tmakes-${id}" min="1" placeholder="1">
+      </div>
+    </div>
   `;
   document.getElementById('itemsList').appendChild(div);
 }
@@ -834,6 +903,7 @@ function clearAll() {
   document.getElementById('doubleUpChance').value  = '';
   document.getElementById('shellPockets').checked  = false;
   document.getElementById('gildedPockets').checked = false;
+  document.getElementById('chillSpot').checked     = false;
   document.getElementById('results').classList.remove('visible');
   const itemsBody = document.getElementById('itemsBody');
   const itemsTitle = document.getElementById('itemsTitle');
@@ -852,6 +922,7 @@ function calculate() {
   const doubleUpFactor = 1 - doubleUpChance / 100;
   const bagSize = (document.getElementById('shellPockets').checked  ? 2 : 0) +
                   (document.getElementById('gildedPockets').checked ? 3 : 0) + 25;
+  const bankingTime = document.getElementById('chillSpot').checked ? 18 : 46;
 
   const warnEl    = document.getElementById('warningBox');
   const resultsEl = document.getElementById('itemResults');
@@ -863,9 +934,11 @@ function calculate() {
     const id   = block.dataset.itemId;
     const name = document.getElementById('tname-' + id)?.value.trim() || ('Item ' + id);
     const qty  = parseInt(document.getElementById('tqty-'  + id)?.value);
-    const rawSecs = parseMMSS(document.getElementById('tsecs-' + id)?.value);
-    const secs = rawSecs > 0 ? rawSecs + 2 : 0;
-    const cost = parseFloat(document.getElementById('tcost-' + id)?.value) || 0;
+    const rawSecs     = parseMMSS(document.getElementById('tsecs-' + id)?.value);
+    const secs        = rawSecs > 0 ? rawSecs + 2 : 0;
+    const cost        = parseFloat(document.getElementById('tcost-' + id)?.value) || 0;
+    const craftRatioOn = document.getElementById('tcraftratio-' + id)?.checked;
+    const makes       = craftRatioOn ? (parseInt(document.getElementById('tmakes-' + id)?.value) || 1) : 1;
     if (!qty || isNaN(qty) || qty <= 0) {
       warnEl.innerHTML += `<div class="warning-box">&#9888; "${name}" — enter a quantity.</div>`;
       valid = false; return;
@@ -874,7 +947,7 @@ function calculate() {
       warnEl.innerHTML += `<div class="warning-box">&#9888; "${name}" — enter seconds per action.</div>`;
       valid = false; return;
     }
-    items.push({ name, qty, secs, rawSecs, cost, isPrimary: block.classList.contains('is-primary') });
+    items.push({ name, qty, secs, rawSecs, cost, makes, isPrimary: block.classList.contains('is-primary') });
   });
 
   if (items.length === 0) { alert('Add at least one item.'); return; }
@@ -883,9 +956,10 @@ function calculate() {
   let totalSecs = 0, totalBankTrips = 0, totalCost = 0;
 
   items.forEach(item => {
-    const effectiveQty = item.qty * doubleUpFactor;
+    const actions      = Math.ceil(item.qty / item.makes);
+    const effectiveQty = actions * doubleUpFactor;
     const bankTrips    = Math.floor(item.qty / bagSize);
-    const itemSecs     = Math.round(effectiveQty * item.secs + bankTrips * 46);
+    const itemSecs     = Math.round(effectiveQty * item.secs + bankTrips * bankingTime);
     const itemCost     = item.qty * item.cost;
     totalSecs      += itemSecs;
     totalBankTrips += bankTrips;
@@ -898,7 +972,7 @@ function calculate() {
       <div class="result-card-body">
         <div style="flex:1">
           <div class="result-item-name">${item.name}</div>
-          <div class="result-meta">${item.qty.toLocaleString()} actions &nbsp;&middot;&nbsp; ${item.rawSecs}s each &nbsp;&middot;&nbsp; ${bankTrips.toLocaleString()} bank trips</div>
+          <div class="result-meta">${item.qty.toLocaleString()} ${item.makes > 1 ? `items (${actions.toLocaleString()} actions)` : 'actions'} &nbsp;&middot;&nbsp; ${item.rawSecs}s each${item.makes > 1 ? ` &nbsp;&middot;&nbsp; ${item.makes}x per action` : ''} &nbsp;&middot;&nbsp; ${bankTrips.toLocaleString()} bank trips</div>
           ${item.cost > 0 ? `<div class="result-cost-line">${itemCost.toLocaleString()} gp total &nbsp;&middot;&nbsp; ${item.cost.toLocaleString()} gp each</div>` : ''}
         </div>
         <div class="result-right">
@@ -932,9 +1006,9 @@ function calculate() {
   `;
 
   overlayData = {
-    items: items.map(i => ({ name: i.name, qty: i.qty, secs: i.secs })),
-    totalSecs, doubleUpFactor,
-    simulation: items.map(i => simulateItem(i, doubleUpChance / 100, bagSize))
+    items: items.map(i => ({ name: i.name, qty: i.qty, secs: i.secs, makes: i.makes })),
+    totalSecs, doubleUpFactor, bankingTime,
+    simulation: items.map(i => simulateItem(i, doubleUpChance / 100, bagSize, bankingTime))
   };
 
   document.getElementById('results').classList.add('visible');
@@ -956,18 +1030,19 @@ function stopOverlayCounter() {
 }
 
 // ---- Overlay Simulation ----
-function simulateItem(item, doubleUpRate, bagSize) {
+function simulateItem(item, doubleUpRate, bagSize, bankingTime = 46) {
   const flat = [];
+  const makes = item.makes || 1;
   let t = 0, done = 0, bag = 0;
   while (done < item.qty) {
     t += item.secs;
-    const gained = (doubleUpRate > 0 && Math.random() < doubleUpRate) ? 2 : 1;
+    const gained = ((doubleUpRate > 0 && Math.random() < doubleUpRate) ? 2 : 1) * makes;
     const actual = Math.min(gained, item.qty - done);
     done += actual;
     bag += actual;
     flat.push(Math.round(t), done);
     if (bag >= bagSize && done < item.qty) {
-      t += 46;
+      t += bankingTime;
       bag = bag - bagSize;
     }
   }
@@ -1030,6 +1105,7 @@ const items=${JSON.stringify(data.items)};
 const totalSecs=${data.totalSecs};
 const CD=${CD};
 const doubleUpFactor=${data.doubleUpFactor || 1};
+const BANKING_TIME=${data.bankingTime || 46};
 const sim=${JSON.stringify(data.simulation)};
 const SAVED=${JSON.stringify(initState)};
 function getDone(arr,t){if(!arr||arr.length===0)return 0;let lo=0,hi=arr.length/2-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(arr[mid*2]<=t)lo=mid;else hi=mid-1;}return arr[lo*2]<=t?arr[lo*2+1]:0;}
@@ -1188,6 +1264,15 @@ function openInfoModal() {
   document.getElementById('infoModal').classList.add('open');
 }
 function closeInfoModal() { document.getElementById('infoModal').classList.remove('open'); }
+
+function openCraftRatioModal() { document.getElementById('craftRatioModal').classList.add('open'); }
+function closeCraftRatioModal() { document.getElementById('craftRatioModal').classList.remove('open'); }
+document.getElementById('craftRatioModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeCraftRatioModal(); });
+
+function toggleCraftRatio(id) {
+  const on = document.getElementById('tcraftratio-' + id).checked;
+  document.getElementById('tcraftratio-fields-' + id).style.display = on ? 'grid' : 'none';
+}
 function switchInfoTab(type, btn) {
   document.getElementById('infoModalImg').src = type === 'gathering' ? IMG_GATHERING : IMG_CRAFTING;
   document.querySelectorAll('.info-tab').forEach(t => t.classList.remove('active'));
