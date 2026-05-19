@@ -1111,6 +1111,7 @@ function resetOverlay(){
   renderItems(0);
   document.fonts.ready.then(()=>{window.resizeTo(320,document.body.scrollHeight+4);});
 }
+new ResizeObserver(()=>{window.resizeTo(320,document.body.scrollHeight+4);}).observe(document.body);
 <\/script></body></html>`;
 }
 
