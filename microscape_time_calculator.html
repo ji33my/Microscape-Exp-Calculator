@@ -521,18 +521,19 @@ function startOverlayPoller() {
       return;
     }
     try {
-      const p = overlayWindow.phase;
-      if (p === 'waiting') {
+      const ms = overlayWindow._ms;
+      if (!ms) return;
+      if (ms.phase === 'waiting') {
         overlayState = null;
-      } else if (p) {
+      } else {
         overlayState = {
-          phase: p,
-          actElapsed: overlayWindow.actElapsed,
-          elapsed: overlayWindow.elapsed,
+          phase: ms.phase,
+          actElapsed: ms.actElapsed,
+          elapsed: ms.elapsed,
           savedAt: Date.now(),
-          fp: overlayWindow.FP,
-          totalSecs: overlayWindow.totalSecs,
-          totalRemaining: overlayWindow.totalRemaining || 0
+          fp: ms.fp,
+          totalSecs: ms.totalSecs,
+          totalRemaining: ms.totalRemaining || 0
         };
       }
     } catch(e) {}
@@ -951,12 +952,15 @@ const sim=${JSON.stringify(data.simulation)};
 const SAVED=${JSON.stringify(initState)};
 function getDone(arr,t){if(!arr||arr.length===0)return 0;let lo=0,hi=arr.length/2-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(arr[mid*2]<=t)lo=mid;else hi=mid-1;}return arr[lo*2]<=t?arr[lo*2+1]:0;}
 const FP=String(totalSecs)+"_"+items.map(i=>i.name+i.qty).join("_");
+window._ms={phase:"waiting",actElapsed:0,elapsed:0,totalRemaining:0,fp:FP,totalSecs:totalSecs};
+function syncState(){window._ms={phase:phase,actElapsed:actElapsed,elapsed:elapsed,totalRemaining:totalRemaining,fp:FP,totalSecs:totalSecs};}
 function saveState(){}
-function clearState(){try{if(window.opener)window.opener.overlayState=null;}catch(e){}}
+function clearState(){window._ms.phase="done";}
 function restoreUI(){
   startBtn.style.display="none";
   document.getElementById("optRow").style.display="none";
   idleNote.style.display="none";
+  actionPrompt.style.display="none";
   resetBtn.style.display="block";
   if(phase==="countdown"){
     phaseLabel.textContent="STARTING IN";phaseLabel.style.display="block";
@@ -975,7 +979,7 @@ function restoreUI(){
     bigTimer.className="big-time done";bigTimer.textContent="DONE";bigTimer.style.display="block";
     renderItems(totalSecs);clearState();
   }
-  window.resizeTo(320,document.body.scrollHeight+4);
+  syncState();window.resizeTo(320,document.body.scrollHeight+4);
 }
 let phase="waiting",elapsed=0,actElapsed=0,ticker=null;
 const bigTimer=document.getElementById("bigTimer");
@@ -1013,9 +1017,9 @@ function startCountdown(){
     phaseLabel.style.display="block";bigTimer.style.display="block";bigTimer.textContent=CD;
     ticker=setInterval(tick,1000);
   }
-  window.resizeTo(320,document.body.scrollHeight+4);
+  syncState();window.resizeTo(320,document.body.scrollHeight+4);
 }
-function tick(){elapsed++;if(phase==="countdown"){const rem=CD-elapsed;if(rem>0){bigTimer.textContent=rem;}else{phase="activity";elapsed=0;actElapsed=0;actionPrompt.style.display="block";phaseLabel.textContent="TIME REMAINING";bigTimer.className="big-time activity";bigTimer.textContent=fmt(totalSecs);progSection.style.display="block";updatePct(0);window.resizeTo(320,document.body.scrollHeight+4);setTimeout(()=>{actionPrompt.style.display="none";},3000);renderItems(0);}}else if(phase==="activity"){actElapsed++;const rem=Math.max(0,totalSecs-actElapsed);bigTimer.textContent=fmt(rem);progFill.style.width=(rem/totalSecs*100)+"%";updatePct(actElapsed);renderItems(actElapsed);saveState();if(rem===0){phase="done";clearInterval(ticker);clearState();phaseLabel.textContent="COMPLETE!";bigTimer.className="big-time done";bigTimer.textContent="DONE";}}}
+function tick(){elapsed++;if(phase==="countdown"){const rem=CD-elapsed;if(rem>0){bigTimer.textContent=rem;}else{phase="activity";elapsed=0;actElapsed=0;actionPrompt.style.display="block";phaseLabel.textContent="TIME REMAINING";bigTimer.className="big-time activity";bigTimer.textContent=fmt(totalSecs);progSection.style.display="block";updatePct(0);window.resizeTo(320,document.body.scrollHeight+4);setTimeout(()=>{actionPrompt.style.display="none";},3000);renderItems(0);}}else if(phase==="activity"){actElapsed++;const rem=Math.max(0,totalSecs-actElapsed);bigTimer.textContent=fmt(rem);progFill.style.width=(rem/totalSecs*100)+"%";updatePct(actElapsed);renderItems(actElapsed);syncState();if(rem===0){phase="done";clearInterval(ticker);clearState();phaseLabel.textContent="COMPLETE!";bigTimer.className="big-time done";bigTimer.textContent="DONE";}}}
 const wasRestored=(function(){
   try{
     const s=SAVED;
@@ -1040,7 +1044,7 @@ function toggleCollapse(){
   window.resizeTo(320,document.body.scrollHeight+4);
 }
 function resetOverlay(){
-  clearInterval(ticker);ticker=null;phase="waiting";elapsed=0;actElapsed=0;clearState();
+  clearInterval(ticker);ticker=null;phase="waiting";elapsed=0;actElapsed=0;clearState();syncState();
   resetBtn.style.display="none";
   phaseLabel.style.display="none";
   bigTimer.style.display="none";bigTimer.className="big-time";
