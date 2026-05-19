@@ -4,7 +4,7 @@ Browser-based tools for planning your training in [Microscape](https://microscap
 
 **[Open Exp/Time Calculator](https://ji33my.github.io/Microscape-Exp-Calculator/microscape_calculator.html)** — XP planning, item quantities, crafting/gathering modes, and time estimates.
 
-**[Open Basic Time Calculator](https://ji33my.github.io/Microscape-Exp-Calculator/microscape_time_calculator.html)** — Enter items, quantities, and seconds per action to get a time estimate.
+**[Open Basic Time Calculator](https://ji33my.github.io/Microscape-Exp-Calculator/microscape_time_calculator.html)** — Enter items, quantities, and seconds per action to get a time estimate. Includes a live overlay timer.
 
 ---
 
@@ -55,6 +55,18 @@ Results show how many of each item to craft or gather, XP contributed per item, 
 - Time displays in seconds, minutes, hours, days, or years as appropriate
 - Each result card shows the estimated time for that specific portion of XP
 - Note: not accurate for Chill Spot banking
+
+### Live Overlay Timer (Basic Time Calculator only)
+After calculating, click **Open Live Overlay** to launch a floating timer window you can keep visible while playing.
+
+- **Always-on-top** — uses the browser's Picture-in-Picture API (Chrome 116+) so the overlay floats above all other windows, including when the main browser is minimized. Falls back to a regular popup on unsupported browsers
+- **Pre-start countdown** — a 10-second idle countdown before the activity timer begins, with a prompt to start your activity at zero. Can be skipped with the Skip Countdown toggle
+- **Live item tracking** — shows each item's quantity, estimated done count, and remaining, updated every second
+- **Simulated double-up** — if a double-up chance is set, the session is pre-simulated so the done count realistically jumps by 1 or 2 per action rather than using a smooth average. Bank trips are also simulated
+- **Progress bar** — visual fill with percentage complete shown below the table
+- **Collapse** — shrink the overlay to just the timer with the − button; expand back with +
+- **Reset** — returns the overlay to the idle state without closing it
+- **Session persistence** — if you close the overlay mid-session (e.g. via Back to Tab) and reopen it, the timer resumes from where it left off including real elapsed time. State clears automatically on page refresh, new calculation, or browser close
 
 ---
 
