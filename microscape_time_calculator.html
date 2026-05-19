@@ -400,6 +400,18 @@
   <div class="preset-bar" id="presetTabs"></div>
 </div>
 
+<div id="overlayStatus" style="display:none;background:rgba(217,124,48,0.07);border:1px solid var(--accent);border-radius:var(--radius);padding:8px 14px;margin-bottom:14px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+    <span style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--text-dim)">TIMER ACTIVE</span>
+    <span id="statusTime" style="font-size:20px;font-weight:700;color:var(--accent);white-space:nowrap">—</span>
+    <span id="statusItems" style="font-size:14px;color:var(--text-dim)"></span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+    <button class="btn btn-overlay" style="font-size:11px;padding:5px 14px" onclick="openOverlay()">&#9654; REOPEN OVERLAY</button>
+    <button class="btn btn-clear" style="font-size:11px;padding:5px 12px" onclick="stopOverlayCounter()">&#9632; STOP</button>
+  </div>
+</div>
+
 <h1>MICROSCAPE</h1>
 <p class="subtitle">Time Calculator</p>
 
@@ -476,23 +488,51 @@ let overlayWindow = null;
 let overlayState = null;
 let overlayPoller = null;
 
+let statusTicker = null;
+
+function updateStatusBar() {
+  const bar = document.getElementById('overlayStatus');
+  if (!overlayState || overlayState.phase !== 'activity') { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const realElapsed = Math.floor((Date.now() - overlayState.savedAt) / 1000);
+  const actEl = Math.min(overlayState.totalSecs, overlayState.actElapsed + realElapsed);
+  const rem = Math.max(0, overlayState.totalSecs - actEl);
+  document.getElementById('statusTime').textContent = formatTime(rem);
+  if (overlayData) {
+    const its = overlayData.items;
+    document.getElementById('statusItems').textContent = its.length === 1
+      ? `${Math.max(0, its[0].qty - overlayState.totalRemaining).toLocaleString()} of ${its[0].qty.toLocaleString()} ${its[0].name}`
+      : `${overlayState.totalRemaining.toLocaleString()} remaining across ${its.length} items`;
+  }
+  if (rem === 0) { bar.style.display = 'none'; if (statusTicker) { clearInterval(statusTicker); statusTicker = null; } }
+}
+
 function startOverlayPoller() {
   if (overlayPoller) clearInterval(overlayPoller);
   overlayPoller = setInterval(() => {
     if (!overlayWindow || overlayWindow.closed) {
       clearInterval(overlayPoller);
       overlayPoller = null;
+      if (overlayState && overlayState.phase === 'activity') {
+        if (statusTicker) clearInterval(statusTicker);
+        statusTicker = setInterval(updateStatusBar, 1000);
+        updateStatusBar();
+      }
       return;
     }
     try {
       const p = overlayWindow.phase;
-      if (p && p !== 'waiting') {
+      if (p === 'waiting') {
+        overlayState = null;
+      } else if (p) {
         overlayState = {
           phase: p,
           actElapsed: overlayWindow.actElapsed,
           elapsed: overlayWindow.elapsed,
           savedAt: Date.now(),
-          fp: overlayWindow.FP
+          fp: overlayWindow.FP,
+          totalSecs: overlayWindow.totalSecs,
+          totalRemaining: overlayWindow.totalRemaining || 0
         };
       }
     } catch(e) {}
@@ -725,8 +765,7 @@ function clearAll() {
 
 // ---- Calculate ----
 function calculate() {
-  overlayState = null;
-  if (overlayWindow && !overlayWindow.closed) overlayWindow.close();
+  stopOverlayCounter();
   const doubleUpChance = parseFloat(document.getElementById('doubleUpChance').value) || 0;
   const doubleUpFactor = 1 - doubleUpChance / 100;
   const bagSize = (document.getElementById('shellPockets').checked  ? 2 : 0) +
@@ -826,6 +865,13 @@ function calculate() {
   }
 }
 
+function stopOverlayCounter() {
+  overlayState = null;
+  if (statusTicker) { clearInterval(statusTicker); statusTicker = null; }
+  if (overlayWindow && !overlayWindow.closed) overlayWindow.close();
+  document.getElementById('overlayStatus').style.display = 'none';
+}
+
 // ---- Overlay Simulation ----
 function simulateItem(item, doubleUpRate, bagSize) {
   const flat = [];
@@ -921,7 +967,7 @@ function restoreUI(){
     bigTimer.className="big-time activity";
     const rem=Math.max(0,totalSecs-actElapsed);
     bigTimer.textContent=fmt(rem);bigTimer.style.display="block";
-    progSection.style.display="block";updatePct(actElapsed);const rr=renderItems(actElapsed);remLine.textContent=rr.toLocaleString()+" rem";
+    progSection.style.display="block";updatePct(actElapsed);renderItems(actElapsed);
     if(actElapsed<totalSecs)ticker=setInterval(tick,1000);
     else{phase="done";phaseLabel.textContent="COMPLETE!";bigTimer.className="big-time done";bigTimer.textContent="DONE";clearState();}
   }else if(phase==="done"){
@@ -944,10 +990,11 @@ const tbody=document.getElementById("tbody");
 const progSection=document.getElementById("progSection");
 const pctLine=document.getElementById("pctLine");
 function fmt(s){if(s<=0)return"0s";const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;if(h>0)return h+"h "+m+"m "+sc+"s";if(m>0)return m+"m "+sc+"s";return sc+"s";}
+let totalRemaining=0;
 function renderItems(a){
-  let totalRem=0;
-  tbody.innerHTML=items.map((it,i)=>{const done=sim[i]?getDone(sim[i],a):Math.min(it.qty,Math.floor(a/(it.secs*doubleUpFactor)));const rem=Math.max(0,it.qty-done);totalRem+=rem;return"<tr><td>"+it.name+"</td><td class=\\"r\\">"+it.qty.toLocaleString()+"</td><td class=\\"r\\">"+done.toLocaleString()+"</td><td class=\\""+( rem===0?"ok":"rem")+"\\">"+ rem.toLocaleString()+"</td></tr>";}).join("");
-  return totalRem;
+  let _r=0;
+  tbody.innerHTML=items.map((it,i)=>{const done=sim[i]?getDone(sim[i],a):Math.min(it.qty,Math.floor(a/(it.secs*doubleUpFactor)));const rem=Math.max(0,it.qty-done);_r+=rem;return"<tr><td>"+it.name+"</td><td class=\\"r\\">"+it.qty.toLocaleString()+"</td><td class=\\"r\\">"+done.toLocaleString()+"</td><td class=\\""+( rem===0?"ok":"rem")+"\\">"+ rem.toLocaleString()+"</td></tr>";}).join("");
+  totalRemaining=_r;return _r;
 }
 function updatePct(a){const pct=Math.min(100,a/totalSecs*100);progFill.style.width=pct+"%";pctLine.textContent=pct.toFixed(1)+"%";}
 function startCountdown(){
@@ -1011,6 +1058,8 @@ function resetOverlay(){
 async function openOverlay() {
   if (!overlayData) { alert('Run a calculation first.'); return; }
   if (overlayWindow && !overlayWindow.closed) overlayWindow.close();
+  if (statusTicker) { clearInterval(statusTicker); statusTicker = null; }
+  document.getElementById('overlayStatus').style.display = 'none';
   const html = buildOverlayHtml();
   const initH = Math.max(310, 280 + overlayData.items.length * 30);
   const firstOpen = !localStorage.getItem('microscape-overlay-positioned');
