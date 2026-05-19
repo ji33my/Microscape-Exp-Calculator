@@ -1254,10 +1254,10 @@ let presets = loadPresetsFromStorage();
 // ---- Storage Helpers ----
 function loadPresetsFromStorage() {
   if (storageMode === 'cookie') {
-    const match = document.cookie.match(/(?:^|; )microscape-presets=([^;]*)/);
+    const match = document.cookie.match(/(?:^|; )microscape-xp-presets=([^;]*)/);
     try { return match ? JSON.parse(decodeURIComponent(match[1])) : []; } catch { return []; }
   }
-  try { return JSON.parse(localStorage.getItem('microscape-presets') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem('microscape-xp-presets') || '[]'); } catch { return []; }
 }
 
 function savePresetsToStorage() {
@@ -1265,9 +1265,9 @@ function savePresetsToStorage() {
     const val = encodeURIComponent(JSON.stringify(presets));
     if (val.length > 3800) { alert('Presets are too large for cookie storage. Switch to Local Storage or delete some presets.'); return; }
     const exp = new Date(); exp.setFullYear(exp.getFullYear() + 1);
-    document.cookie = 'microscape-presets=' + val + ';expires=' + exp.toUTCString() + ';path=/';
+    document.cookie = 'microscape-xp-presets=' + val + ';expires=' + exp.toUTCString() + ';path=/';
   } else {
-    localStorage.setItem('microscape-presets', JSON.stringify(presets));
+    localStorage.setItem('microscape-xp-presets', JSON.stringify(presets));
   }
 }
 
@@ -1283,9 +1283,9 @@ function clearStorage(target) {
   const label = target === 'local' ? 'Local Storage' : 'Cookies';
   if (!confirm('Clear all presets from ' + label + '?')) return;
   if (target === 'local') {
-    localStorage.removeItem('microscape-presets');
+    localStorage.removeItem('microscape-xp-presets');
   } else {
-    document.cookie = 'microscape-presets=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+    document.cookie = 'microscape-xp-presets=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
   }
   if (target === storageMode) { presets = []; renderPresetTabs(); }
 }
@@ -1295,7 +1295,7 @@ function backupPresets() {
   const blob = new Blob([JSON.stringify(presets, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'microscape-presets.json';
+  a.download = 'microscape-xp-presets.json';
   a.click();
   URL.revokeObjectURL(a.href);
 }
