@@ -622,7 +622,7 @@ function clearStorage(target) {
 
 function backupPresets() {
   if (presets.length === 0) { alert('No presets to backup.'); return; }
-  const blob = new Blob([JSON.stringify(presets, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ calculator: 'time', presets }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'microscape-time-presets.json';
@@ -636,7 +636,12 @@ function loadPresetsFromFile(e) {
   const reader = new FileReader();
   reader.onload = ev => {
     try {
-      const data = JSON.parse(ev.target.result);
+      const parsed = JSON.parse(ev.target.result);
+      if (parsed.calculator && parsed.calculator !== 'time') {
+        alert('This preset file is for the XP Calculator, not the Time Calculator.');
+        return;
+      }
+      const data = parsed.presets ?? parsed;
       if (!Array.isArray(data)) throw new Error();
       const merged = [...presets];
       data.forEach(p => { if (!merged.find(x => x.id === p.id)) merged.push(p); });
