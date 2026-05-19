@@ -31,7 +31,7 @@ Results show how many of each item to craft or gather, XP contributed per item, 
 ### General
 - **XP calculation** — accurate XP requirements for any level range using the verified Microscape XP formula
 - **Collapsible panels** — Items and Results panels collapse automatically after calculating to keep things clean
-- **Saved presets** — save your current setup by name and switch between them with one click. Persists across sessions (localStorage or cookies)
+- **Saved presets** — save your current setup by name and switch between them with one click. Persists across sessions (localStorage or cookies). Use **Backup** to export presets as a JSON file and **Load** to import them back — handy for transferring between devices or browsers
 - **XP table** — view cumulative XP and XP-to-next for every level from 1 to 99
 - **Skill item tables** — browse XP and sell price data for Smithing, Cooking, Fletching, Fishing, Mining, Herblaw, Crafting, and Woodcutting. Filter by name
 
@@ -54,7 +54,7 @@ Results show how many of each item to craft or gather, XP contributed per item, 
 - Banking time fixed at 46 seconds per trip
 - Time displays in seconds, minutes, hours, days, or years as appropriate
 - Each result card shows the estimated time for that specific portion of XP
-- Note: not accurate for Chill Spot banking
+- Note: not accurate for Chill Spot banking, and does not account for some abilities that would speed up item acquisition and exp gains
 
 ### Live Overlay Timer (Basic Time Calculator only)
 After calculating, click **Open Live Overlay** to launch a floating timer window you can keep visible while playing.
