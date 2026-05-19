@@ -928,7 +928,14 @@
 
 <!-- Presets -->
 <div class="panel" id="presetsPanel" style="display:none">
-  <div class="panel-title">PRESETS</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div class="panel-title" style="margin-bottom:0;flex:1">PRESETS</div>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button class="btn btn-util" style="font-size:12px;padding:5px 11px" onclick="backupPresets()">&#128190; BACKUP</button>
+      <button class="btn btn-util" style="font-size:12px;padding:5px 11px" onclick="document.getElementById('loadPresetsInput').click()">&#128194; LOAD</button>
+      <input type="file" id="loadPresetsInput" accept=".json" style="display:none" onchange="loadPresetsFromFile(event)">
+    </div>
+  </div>
   <div class="preset-bar" id="presetTabs"></div>
 </div>
 
@@ -1281,6 +1288,36 @@ function clearStorage(target) {
     document.cookie = 'microscape-presets=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
   }
   if (target === storageMode) { presets = []; renderPresetTabs(); }
+}
+
+function backupPresets() {
+  if (presets.length === 0) { alert('No presets to backup.'); return; }
+  const blob = new Blob([JSON.stringify(presets, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'microscape-presets.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function loadPresetsFromFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw new Error();
+      const merged = [...presets];
+      data.forEach(p => { if (!merged.find(x => x.id === p.id)) merged.push(p); });
+      presets = merged;
+      savePresetsToStorage();
+      renderPresetTabs();
+      alert(`Loaded ${data.length} preset(s). Duplicates were skipped.`);
+    } catch { alert('Invalid preset file.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
 }
 
 function updateStorageUI() {
