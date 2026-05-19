@@ -395,7 +395,7 @@
 </div>
 
 <!-- Presets -->
-<div class="panel" id="presetsPanel" style="display:none">
+<div class="panel" id="presetsPanel">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
     <div class="panel-title" style="margin-bottom:0;flex:1">PRESETS</div>
     <div style="display:flex;gap:6px;flex-shrink:0">
@@ -743,7 +743,6 @@ function renderPresetTabs(activeId) {
   if (activeId !== undefined) activePresetId = activeId;
   const panel = document.getElementById('presetsPanel');
   const tabsEl = document.getElementById('presetTabs');
-  if (presets.length === 0) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
   tabsEl.innerHTML = presets.map(p => `
     <button class="preset-tab${p.id === activePresetId ? ' active' : ''}" onclick="loadPreset(${p.id})">
