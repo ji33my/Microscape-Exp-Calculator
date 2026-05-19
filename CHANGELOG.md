@@ -2,6 +2,17 @@
 
 ---
 
+## v1.15 — 2026-05-19
+
+### Both Calculators
+- MM:SS time input reworked: digits fill right-to-left (units of seconds first), template chars stay dim, colon brightens at 3+ digits
+- Chill Spot Banking checkbox — switches banking time from 46s to 18s
+- Settings checkboxes (Shell, Gilded, Chill Spot) displayed horizontally with individual ⓘ hover tooltips
+- Craft Ratio checkbox on all item types — reveals Uses/Makes per action fields
+- Resulting items count shown in results when Makes > 1
+
+---
+
 ## v1.10 — 2026-05-19
 
 ### XP & Item Calculator
