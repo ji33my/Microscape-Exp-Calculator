@@ -396,19 +396,26 @@
 
 <!-- Presets -->
 <div class="panel" id="presetsPanel" style="display:none">
-  <div class="panel-title">PRESETS</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div class="panel-title" style="margin-bottom:0;flex:1">PRESETS</div>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button class="btn btn-util" style="font-size:12px;padding:5px 11px" onclick="backupPresets()">&#128190; BACKUP</button>
+      <button class="btn btn-util" style="font-size:12px;padding:5px 11px" onclick="document.getElementById('loadPresetsInput').click()">&#128194; LOAD</button>
+      <input type="file" id="loadPresetsInput" accept=".json" style="display:none" onchange="loadPresetsFromFile(event)">
+    </div>
+  </div>
   <div class="preset-bar" id="presetTabs"></div>
 </div>
 
 <div id="overlayStatus" style="display:none;background:rgba(217,124,48,0.07);border:1px solid var(--accent);border-radius:var(--radius);padding:8px 14px;margin-bottom:14px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
   <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
-    <span style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--text-dim)">TIMER ACTIVE</span>
+    <span id="statusLabel" style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--text-dim)">TIMER ACTIVE</span>
     <span id="statusTime" style="font-size:20px;font-weight:700;color:var(--accent);white-space:nowrap">—</span>
     <span id="statusItems" style="font-size:14px;color:var(--text-dim)"></span>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
     <button class="btn btn-overlay" style="font-size:11px;padding:5px 14px" onclick="openOverlay()">&#9654; REOPEN OVERLAY</button>
-    <button class="btn btn-clear" style="font-size:11px;padding:5px 12px" onclick="stopOverlayCounter()">&#9632; STOP</button>
+    <button class="btn btn-clear" style="font-size:11px;padding:5px 12px" onclick="stopOverlayCounter()">CLEAR</button>
   </div>
 </div>
 
@@ -492,11 +499,26 @@ let statusTicker = null;
 
 function updateStatusBar() {
   const bar = document.getElementById('overlayStatus');
-  if (!overlayState || overlayState.phase !== 'activity') { bar.style.display = 'none'; return; }
+  if (!overlayState || (overlayState.phase !== 'activity' && overlayState.phase !== 'done')) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
+  if (overlayState.phase === 'done') {
+    document.getElementById('statusLabel').textContent = 'COMPLETE';
+    document.getElementById('statusLabel').style.color = 'var(--green)';
+    document.getElementById('statusTime').textContent = '—';
+    document.getElementById('statusItems').textContent = '';
+    if (statusTicker) { clearInterval(statusTicker); statusTicker = null; }
+    return;
+  }
+  document.getElementById('statusLabel').textContent = 'TIMER ACTIVE';
+  document.getElementById('statusLabel').style.color = 'var(--text-dim)';
   const realElapsed = Math.floor((Date.now() - overlayState.savedAt) / 1000);
   const actEl = Math.min(overlayState.totalSecs, overlayState.actElapsed + realElapsed);
   const rem = Math.max(0, overlayState.totalSecs - actEl);
+  if (rem === 0) {
+    overlayState.phase = 'done';
+    updateStatusBar();
+    return;
+  }
   document.getElementById('statusTime').textContent = formatTime(rem);
   if (overlayData) {
     const its = overlayData.items;
@@ -504,7 +526,6 @@ function updateStatusBar() {
       ? `${Math.max(0, its[0].qty - overlayState.totalRemaining).toLocaleString()} of ${its[0].qty.toLocaleString()} ${its[0].name}`
       : `${overlayState.totalRemaining.toLocaleString()} remaining across ${its.length} items`;
   }
-  if (rem === 0) { bar.style.display = 'none'; if (statusTicker) { clearInterval(statusTicker); statusTicker = null; } }
 }
 
 function startOverlayPoller() {
@@ -513,7 +534,7 @@ function startOverlayPoller() {
     if (!overlayWindow || overlayWindow.closed) {
       clearInterval(overlayPoller);
       overlayPoller = null;
-      if (overlayState && overlayState.phase === 'activity') {
+      if (overlayState && (overlayState.phase === 'activity' || overlayState.phase === 'done')) {
         if (statusTicker) clearInterval(statusTicker);
         statusTicker = setInterval(updateStatusBar, 1000);
         updateStatusBar();
@@ -597,6 +618,36 @@ function clearStorage(target) {
   if (target === 'local') localStorage.removeItem('microscape-time-presets');
   else document.cookie = 'microscape-time-presets=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
   if (target === storageMode) { presets = []; renderPresetTabs(); }
+}
+
+function backupPresets() {
+  if (presets.length === 0) { alert('No presets to backup.'); return; }
+  const blob = new Blob([JSON.stringify(presets, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'microscape-time-presets.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function loadPresetsFromFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw new Error();
+      const merged = [...presets];
+      data.forEach(p => { if (!merged.find(x => x.id === p.id)) merged.push(p); });
+      presets = merged;
+      savePresetsToStorage();
+      renderPresetTabs();
+      alert(`Loaded ${data.length} preset(s). Duplicates were skipped.`);
+    } catch { alert('Invalid preset file.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
 }
 
 function updateStorageUI() {
