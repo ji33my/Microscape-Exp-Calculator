@@ -123,17 +123,9 @@
   input[type="number"]::-webkit-outer-spin-button,
   input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(232,184,75,0.12); }
-  .mmss-wrap { position: relative; display: block; }
-  .mmss-input { color: transparent !important; caret-color: var(--text); }
-  .mmss-input::placeholder { color: var(--text-dim); opacity: 0.5; }
-  .mmss-overlay {
-    position: absolute; inset: 0; pointer-events: none;
-    display: flex; align-items: center; padding: 6px 10px;
-    font-size: 19px; font-weight: 700; font-family: 'Nunito', sans-serif;
-  }
-  .mmss-digit { color: var(--text); }
-  .mmss-ph { color: var(--text-dim); opacity: 0.5; }
-  .mmss-sep { color: var(--text-dim); opacity: 0.5; }
+  .mmss-pair { display:flex; align-items:center; gap:6px; }
+  .mmss-part { width:58px !important; flex-shrink:0; text-align:center; }
+  .mmss-colon { color:var(--text-dim); font-size:22px; font-weight:700; flex-shrink:0; user-select:none; }
   input::placeholder { color: var(--text-dim); opacity: 0.5; font-weight: 400; }
 
   input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
@@ -536,7 +528,7 @@
 </div>
 
 <script>
-const VERSION = '1.16';
+const VERSION = '1.17';
 document.getElementById('versionDisplay').textContent = VERSION;
 
 let itemCount = 0;
@@ -623,55 +615,26 @@ function togglePanel(bodyId, titleEl) {
 }
 
 // Entry order: S0(tens-sec), S1(units-sec), M1(units-min), M0(tens-min)
-// Display:     M0 M1 : S0 S1
-function formatMMSS(digits) {
-  digits = String(digits||'').replace(/\D/g,'').slice(0,4);
-  if (!digits) return '';
-  const M0=digits[3]||'M', M1=digits[2]||'M', S0=digits[0]||'S', S1=digits[1]||'S';
-  return `${M0}${M1}:${S0}${S1}`;
-}
-function parseMMSS(val) {
-  if (!val) return 0;
-  const s = String(val).replace(':','');
-  const M0=/\d/.test(s[0]||'')?parseInt(s[0]):0, M1=/\d/.test(s[1]||'')?parseInt(s[1]):0;
-  const S0=/\d/.test(s[2]||'')?parseInt(s[2]):0, S1=/\d/.test(s[3]||'')?parseInt(s[3]):0;
-  return (M0*10+M1)*60 + S0*10 + S1;
-}
-function secsToDigits(secs) {
-  const s = Math.round(parseFloat(secs)||0);
-  if (!s) return '';
-  const m=Math.floor(s/60), sc=s%60;
-  // entry order: S0, S1, M1, M0 — strip trailing zeros (high-significance)
-  return `${Math.floor(sc/10)}${sc%10}${m%10}${Math.floor(m/10)}`.replace(/0+$/,'') || '';
-}
 function loadSecsValue(stored) {
   if (!stored && stored !== 0) return 0;
   if (typeof stored === 'number') return Math.round(stored);
   const str = String(stored).trim();
-  if (/[MS]/.test(str)) return parseMMSS(str);
-  if (str.includes(':')) { const p=str.split(':'); return (parseInt(p[0])||0)*60+(parseInt(p[1])||0); }
+  if (str.includes(':') && !/[MS]/.test(str)) { const p=str.split(':'); return (parseInt(p[0])||0)*60+(parseInt(p[1])||0); }
   return parseInt(str) || 0;
 }
-function setMMSSValue(el, digits) {
-  if (!el) return;
-  digits = String(digits||'').replace(/\D/g,'').slice(0,4);
-  el.dataset.digits = digits; el.value = formatMMSS(digits);
-  const ov = el.parentElement?.querySelector('.mmss-overlay');
-  if (!ov) return;
-  if (!digits) { ov.innerHTML = ''; return; }
-  const ch = (d,ph) => d && /\d/.test(d) ? `<span class="mmss-digit">${d}</span>` : `<span class="mmss-ph">${ph}</span>`;
-  const sep = digits.length >= 3 ? `<span class="mmss-digit">:</span>` : `<span class="mmss-sep">:</span>`;
-  ov.innerHTML = `${ch(digits[3],'M')}${ch(digits[2],'M')}${sep}${ch(digits[0],'S')}${ch(digits[1],'S')}`;
-}
 document.addEventListener('keydown', e => {
-  if (!e.target.classList.contains('mmss-input')) return;
-  const input = e.target;
-  const digits = input.dataset.digits || '';
-  if (e.key === 'Backspace') { setMMSSValue(input, digits.slice(0,-1)); e.preventDefault(); return; }
-  if (!/^\d$/.test(e.key)) { e.preventDefault(); return; }
-  if (digits.length >= 4) { e.preventDefault(); return; }
-  setMMSSValue(input, digits + e.key);
-  e.preventDefault();
+  const isMin = e.target.classList.contains('mmss-min');
+  const isSec = e.target.classList.contains('mmss-sec');
+  if (!isMin && !isSec) return;
+  if (!/^\d$/.test(e.key) && e.key !== 'Backspace') { e.preventDefault(); return; }
+  if (e.key === 'Backspace') return;
+  if (e.target.value.length >= 2) { e.preventDefault(); return; }
+  if (isMin && e.target.value.length === 0) {
+    setTimeout(() => {
+      const sec = e.target.closest('.mmss-pair')?.querySelector('.mmss-sec');
+      if (sec) sec.focus();
+    }, 0);
+  }
 }, true);
 
 function formatTime(secs) {
@@ -776,7 +739,8 @@ function captureFormState() {
     items.push({
       name:       document.getElementById('tname-'       + id)?.value || '',
       qty:        document.getElementById('tqty-'        + id)?.value || '',
-      secs:       parseMMSS(document.getElementById('tsecs-' + id)?.value),
+      mins:       document.getElementById('tmin-' + id)?.value || '',
+      secs:       document.getElementById('tsec-' + id)?.value || '',
       cost:       document.getElementById('tcost-'       + id)?.value || '',
       craftRatio: document.getElementById('tcraftratio-' + id)?.checked || false,
       makes:      document.getElementById('tmakes-'      + id)?.value || '',
@@ -834,7 +798,14 @@ function loadPreset(id) {
     const id2 = itemCount;
     document.getElementById('tname-' + id2).value = item.name;
     document.getElementById('tqty-'  + id2).value = item.qty;
-    setMMSSValue(document.getElementById('tsecs-' + id2), secsToDigits(loadSecsValue(item.secs)));
+    if (item.mins !== undefined) {
+      document.getElementById('tmin-' + id2).value = item.mins;
+      document.getElementById('tsec-' + id2).value = item.secs;
+    } else {
+      const _t = loadSecsValue(item.secs);
+      document.getElementById('tmin-' + id2).value = Math.floor(_t/60) || '';
+      document.getElementById('tsec-' + id2).value = _t%60 || '';
+    }
     document.getElementById('tcost-' + id2).value = item.cost;
     if (item.craftRatio) {
       document.getElementById('tcraftratio-' + id2).checked = true;
@@ -899,7 +870,11 @@ function addItem(isPrimary = false) {
           <label style="margin:0">SECONDS PER ACTION</label>
           <button class="info-btn" type="button" onclick="openInfoModal()">ⓘ</button>
         </div>
-        <div class="mmss-wrap"><input type="text" class="mmss-input" id="tsecs-${id}" placeholder="MM:SS"><div class="mmss-overlay"></div></div>
+        <div class="mmss-pair">
+          <input type="text" class="mmss-min mmss-part" id="tmin-${id}" placeholder="MM" maxlength="2">
+          <span class="mmss-colon">:</span>
+          <input type="text" class="mmss-sec mmss-part" id="tsec-${id}" placeholder="SS" maxlength="2">
+        </div>
       </div>
       <div>
         <label>COST/ITEM <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
@@ -971,8 +946,10 @@ function calculate() {
     const id   = block.dataset.itemId;
     const name = document.getElementById('tname-' + id)?.value.trim() || ('Item ' + id);
     const qty  = parseInt(document.getElementById('tqty-'  + id)?.value);
-    const rawSecs     = parseMMSS(document.getElementById('tsecs-' + id)?.value);
-    const secs        = rawSecs > 0 ? rawSecs + 2 : 0;
+    const rawMins = parseInt(document.getElementById('tmin-' + id)?.value) || 0;
+    const rawSec  = parseInt(document.getElementById('tsec-' + id)?.value)  || 0;
+    const rawSecs = rawMins * 60 + rawSec;
+    const secs    = rawSecs > 0 ? rawSecs + 2 : 0;
     const cost        = parseFloat(document.getElementById('tcost-' + id)?.value) || 0;
     const craftRatioOn = document.getElementById('tcraftratio-' + id)?.checked;
     const makes       = craftRatioOn ? (parseInt(document.getElementById('tmakes-' + id)?.value) || 1) : 1;

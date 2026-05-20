@@ -2,6 +2,14 @@
 
 ---
 
+## v1.17 — 2026-05-20
+
+### Both Calculators
+- Replaced single MM:SS input with two separate MM and SS boxes; typing one digit in MM auto-advances to SS
+- Old presets load correctly via backward-compatible conversion
+
+---
+
 ## v1.16 — 2026-05-20
 
 ### Both Calculators

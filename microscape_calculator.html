@@ -133,17 +133,9 @@
   input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(232,184,75,0.12); }
   input::placeholder { color: var(--text-dim); opacity: 0.5; font-weight: 400; }
-  .mmss-wrap { position: relative; display: block; }
-  .mmss-input { color: transparent !important; caret-color: var(--text); }
-  .mmss-input::placeholder { color: var(--text-dim); opacity: 0.5; }
-  .mmss-overlay {
-    position: absolute; inset: 0; pointer-events: none;
-    display: flex; align-items: center; padding: 6px 10px;
-    font-size: 19px; font-weight: 700; font-family: 'Nunito', sans-serif;
-  }
-  .mmss-digit { color: var(--text); }
-  .mmss-ph { color: var(--text-dim); opacity: 0.5; }
-  .mmss-sep { color: var(--text-dim); opacity: 0.5; }
+  .mmss-pair { display:flex; align-items:center; gap:6px; }
+  .mmss-part { width:58px !important; flex-shrink:0; text-align:center; }
+  .mmss-colon { color:var(--text-dim); font-size:22px; font-weight:700; flex-shrink:0; user-select:none; }
 
   .check-label {
     display: flex;
@@ -1143,7 +1135,7 @@ function restoreItems(items) {
       document.getElementById('ixp-'   + id).value = item.xpPer;
       document.getElementById('iqty-'  + id).value = item.qtyOwned || '';
       document.getElementById('icost-' + id).value = item.cost     || '';
-      const s1 = document.getElementById('isecs-' + id); if (s1) setMMSSValue(s1, secsToDigits(loadSecsValue(item.secs)));
+      setMinSec('imin-' + id, 'isec-' + id, item);
       if (item.craftRatio) { const cr1 = document.getElementById('icraftratio-' + id); if (cr1) { cr1.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else if (item.type === 'chain') {
       addChainItem();
@@ -1152,7 +1144,7 @@ function restoreItems(items) {
       document.getElementById('ixp-'         + id).value = item.xpPer;
       document.getElementById('isp-ratio-'   + id).value = item.ratio     || '';
       document.getElementById('ichain-goal-' + id).value = item.chainGoal || '';
-      const s2 = document.getElementById('isecs-' + id); if (s2) setMMSSValue(s2, secsToDigits(loadSecsValue(item.secs)));
+      setMinSec('imin-' + id, 'isec-' + id, item);
       if (item.craftRatio) { const cr2 = document.getElementById('icraftratio-' + id); if (cr2) { cr2.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else if (item.type === 'gather') {
       addGatherItem();
@@ -1160,7 +1152,7 @@ function restoreItems(items) {
       document.getElementById('iname-' + id).value = item.name;
       document.getElementById('ixp-'   + id).value = item.xpPer;
       document.getElementById('igoal-' + id).value = item.qtyGoal || '';
-      const s3 = document.getElementById('isecs-' + id); if (s3) setMMSSValue(s3, secsToDigits(loadSecsValue(item.secs)));
+      setMinSec('imin-' + id, 'isec-' + id, item);
       if (item.craftRatio) { const cr3 = document.getElementById('icraftratio-' + id); if (cr3) { cr3.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else {
       addSecondary();
@@ -1170,7 +1162,7 @@ function restoreItems(items) {
       document.getElementById('iqty-'  + id).value = item.qtyOwned || '';
       document.getElementById('igoal-' + id).value = item.qtyGoal  || '';
       document.getElementById('icost-' + id).value = item.cost     || '';
-      const s4 = document.getElementById('isecs-' + id); if (s4) setMMSSValue(s4, secsToDigits(loadSecsValue(item.secs)));
+      setMinSec('imin-' + id, 'isec-' + id, item);
       if (item.craftRatio) { const cr4 = document.getElementById('icraftratio-' + id); if (cr4) { cr4.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     }
   });
@@ -1203,7 +1195,8 @@ function switchMode(mode, fromPresetLoad = false) {
       const savedXp   = document.getElementById('ixp-'   + primaryItemId)?.value || '';
       const savedQty  = document.getElementById('iqty-'  + primaryItemId)?.value || '';
       const savedCost = document.getElementById('icost-' + primaryItemId)?.value || '';
-      const savedSecs = parseMMSS(document.getElementById('isecs-' + primaryItemId)?.value);
+      const savedMins = document.getElementById('imin-' + primaryItemId)?.value || '';
+      const savedSecs = document.getElementById('isec-' + primaryItemId)?.value || '';
       document.getElementById('item-' + primaryItemId)?.remove();
       primaryItemId = null; itemCount--;
       addPrimary();
@@ -1211,8 +1204,10 @@ function switchMode(mode, fromPresetLoad = false) {
       document.getElementById('ixp-'   + primaryItemId).value = savedXp;
       document.getElementById('iqty-'  + primaryItemId).value = savedQty;
       document.getElementById('icost-' + primaryItemId).value = savedCost;
-      const newSecs = document.getElementById('isecs-' + primaryItemId);
-      if (newSecs) setMMSSValue(newSecs, secsToDigits(savedSecs));
+      const newMin = document.getElementById('imin-' + primaryItemId);
+      const newSec = document.getElementById('isec-' + primaryItemId);
+      if (newMin) newMin.value = savedMins;
+      if (newSec) newSec.value = savedSecs;
     }
   }
 
@@ -1249,7 +1244,7 @@ function addGatherItem() {
             <label style="margin:0">SECONDS PER GATHER</label>
             <button class="info-btn" type="button" onclick="openInfoModal('gathering')">ⓘ</button>
           </div>
-          <div class="mmss-wrap"><input type="text" class="mmss-input" id="isecs-${id}" placeholder="MM:SS"><div class="mmss-overlay"></div></div>
+          <div class="mmss-pair"><input type="text" class="mmss-min mmss-part" id="imin-${id}" placeholder="MM" maxlength="2"><span class="mmss-colon">:</span><input type="text" class="mmss-sec mmss-part" id="isec-${id}" placeholder="SS" maxlength="2"></div>
         </div>
       </div>
       <div>
@@ -1318,7 +1313,7 @@ function clearAll() {
   renderPresetTabs();
 }
 
-const VERSION = '1.16';
+const VERSION = '1.17';
 document.getElementById('versionDisplay').textContent = VERSION;
 
 let itemCount = 0;
@@ -1436,55 +1431,33 @@ function xpForLevel(L) {
 }
 
 // ---- MM:SS Input Helpers ----
-// Entry order: S0(tens-sec), S1(units-sec), M1(units-min), M0(tens-min)
-// Display:     M0 M1 : S0 S1
-function formatMMSS(digits) {
-  digits = String(digits||'').replace(/\D/g,'').slice(0,4);
-  if (!digits) return '';
-  const M0=digits[3]||'M', M1=digits[2]||'M', S0=digits[0]||'S', S1=digits[1]||'S';
-  return `${M0}${M1}:${S0}${S1}`;
-}
-function parseMMSS(val) {
-  if (!val) return 0;
-  const s = String(val).replace(':','');
-  const M0=/\d/.test(s[0]||'')?parseInt(s[0]):0, M1=/\d/.test(s[1]||'')?parseInt(s[1]):0;
-  const S0=/\d/.test(s[2]||'')?parseInt(s[2]):0, S1=/\d/.test(s[3]||'')?parseInt(s[3]):0;
-  return (M0*10+M1)*60 + S0*10 + S1;
-}
-function secsToDigits(secs) {
-  const s = Math.round(parseFloat(secs)||0);
-  if (!s) return '';
-  const m=Math.floor(s/60), sc=s%60;
-  return `${Math.floor(sc/10)}${sc%10}${m%10}${Math.floor(m/10)}`.replace(/0+$/,'') || '';
-}
 function loadSecsValue(stored) {
   if (!stored && stored !== 0) return 0;
   if (typeof stored === 'number') return Math.round(stored);
   const str = String(stored).trim();
-  if (/[MS]/.test(str)) return parseMMSS(str);
-  if (str.includes(':')) { const p=str.split(':'); return (parseInt(p[0])||0)*60+(parseInt(p[1])||0); }
+  if (str.includes(':') && !/[MS]/.test(str)) { const p=str.split(':'); return (parseInt(p[0])||0)*60+(parseInt(p[1])||0); }
   return parseInt(str) || 0;
 }
-function setMMSSValue(el, digits) {
-  if (!el) return;
-  digits = String(digits||'').replace(/\D/g,'').slice(0,4);
-  el.dataset.digits = digits; el.value = formatMMSS(digits);
-  const ov = el.parentElement?.querySelector('.mmss-overlay');
-  if (!ov) return;
-  if (!digits) { ov.innerHTML = ''; return; }
-  const ch = (d,ph) => d && /\d/.test(d) ? `<span class="mmss-digit">${d}</span>` : `<span class="mmss-ph">${ph}</span>`;
-  const sep = digits.length >= 3 ? `<span class="mmss-digit">:</span>` : `<span class="mmss-sep">:</span>`;
-  ov.innerHTML = `${ch(digits[3],'M')}${ch(digits[2],'M')}${sep}${ch(digits[0],'S')}${ch(digits[1],'S')}`;
+function setMinSec(idMin, idSec, item) {
+  if (item.mins !== undefined) {
+    document.getElementById(idMin).value = item.mins;
+    document.getElementById(idSec).value = item.secs;
+  } else {
+    const t = loadSecsValue(item.secs);
+    document.getElementById(idMin).value = Math.floor(t/60) || '';
+    document.getElementById(idSec).value = t%60 || '';
+  }
 }
 document.addEventListener('keydown', e => {
-  if (!e.target.classList.contains('mmss-input')) return;
-  const input = e.target;
-  const digits = input.dataset.digits || '';
-  if (e.key === 'Backspace') { setMMSSValue(input, digits.slice(0,-1)); e.preventDefault(); return; }
-  if (!/^\d$/.test(e.key)) { e.preventDefault(); return; }
-  if (digits.length >= 4) { e.preventDefault(); return; }
-  setMMSSValue(input, digits + e.key);
-  e.preventDefault();
+  const isMin = e.target.classList.contains('mmss-min');
+  const isSec = e.target.classList.contains('mmss-sec');
+  if (!isMin && !isSec) return;
+  if (!/^\d$/.test(e.key) && e.key !== 'Backspace') { e.preventDefault(); return; }
+  if (e.key === 'Backspace') return;
+  if (e.target.value.length >= 2) { e.preventDefault(); return; }
+  if (isMin && e.target.value.length === 0) {
+    setTimeout(() => { e.target.closest('.mmss-pair')?.querySelector('.mmss-sec')?.focus(); }, 0);
+  }
 }, true);
 
 // ---- Helpers ----
@@ -1571,7 +1544,8 @@ function captureFormState() {
       name:  document.getElementById('iname-'  + id)?.value || '',
       xpPer: document.getElementById('ixp-'    + id)?.value || '',
       cost:  document.getElementById('icost-'  + id)?.value || '',
-      secs:       parseMMSS(document.getElementById('isecs-' + id)?.value),
+      mins:       document.getElementById('imin-' + id)?.value || '',
+      secs:       document.getElementById('isec-' + id)?.value || '',
       craftRatio: document.getElementById('icraftratio-' + id)?.checked || false,
       makes:      document.getElementById('imakes-'      + id)?.value || '',
       uses:       document.getElementById('iuses-'       + id)?.value || ''
@@ -1632,8 +1606,7 @@ function loadPresetData(preset) {
       document.getElementById('ixp-'    + id).value = item.xpPer;
       document.getElementById('iqty-'   + id).value = item.qtyOwned;
       document.getElementById('icost-'  + id).value = item.cost;
-      const secsEl1 = document.getElementById('isecs-' + id);
-      if (secsEl1) setMMSSValue(secsEl1, secsToDigits(loadSecsValue(item.secs)));
+      setMinSec('imin-' + id, 'isec-' + id, item);
       if (item.craftRatio) { const cr = document.getElementById('icraftratio-' + id); if (cr) { cr.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else if (item.type === 'chain') {
       addChainItem();
@@ -1644,8 +1617,7 @@ function loadPresetData(preset) {
       document.getElementById('ichain-goal-'  + id).value = item.chainGoal || '';
       const chainCostEl = document.getElementById('icost-' + id);
       if (chainCostEl) chainCostEl.value = item.cost;
-      const secsEl2 = document.getElementById('isecs-' + id);
-      if (secsEl2) setMMSSValue(secsEl2, secsToDigits(loadSecsValue(item.secs)));
+      setMinSec('imin-' + id, 'isec-' + id, item);
       if (item.craftRatio) { const cr = document.getElementById('icraftratio-' + id); if (cr) { cr.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else if (item.type === 'gather') {
       addGatherItem();
@@ -1653,8 +1625,7 @@ function loadPresetData(preset) {
       document.getElementById('iname-' + id).value = item.name;
       document.getElementById('ixp-'   + id).value = item.xpPer;
       document.getElementById('igoal-' + id).value = item.qtyGoal || '';
-      const secsEl3 = document.getElementById('isecs-' + id);
-      if (secsEl3) setMMSSValue(secsEl3, secsToDigits(loadSecsValue(item.secs)));
+      setMinSec('imin-' + id, 'isec-' + id, item);
       if (item.craftRatio) { const cr = document.getElementById('icraftratio-' + id); if (cr) { cr.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     } else {
       addSecondary();
@@ -1664,8 +1635,7 @@ function loadPresetData(preset) {
       document.getElementById('iqty-'   + id).value = item.qtyOwned;
       document.getElementById('igoal-'  + id).value = item.qtyGoal;
       document.getElementById('icost-'  + id).value = item.cost;
-      const secsEl4 = document.getElementById('isecs-' + id);
-      if (secsEl4) setMMSSValue(secsEl4, secsToDigits(loadSecsValue(item.secs)));
+      setMinSec('imin-' + id, 'isec-' + id, item);
       if (item.craftRatio) { const cr = document.getElementById('icraftratio-' + id); if (cr) { cr.checked = true; toggleCraftRatio(id); document.getElementById('imakes-' + id).value = item.makes || ''; document.getElementById('iuses-' + id).value = item.uses || ''; } }
     }
   });
@@ -1733,7 +1703,7 @@ function addPrimary() {
             <label style="margin:0">SECONDS PER GATHER</label>
             <button class="info-btn" type="button" onclick="openInfoModal('gathering')">ⓘ</button>
           </div>
-          <div class="mmss-wrap"><input type="text" class="mmss-input" id="isecs-${id}" placeholder="MM:SS"><div class="mmss-overlay"></div></div>
+          <div class="mmss-pair"><input type="text" class="mmss-min mmss-part" id="imin-${id}" placeholder="MM" maxlength="2"><span class="mmss-colon">:</span><input type="text" class="mmss-sec mmss-part" id="isec-${id}" placeholder="SS" maxlength="2"></div>
         </div>` : ''}
       </div>
       <div>
@@ -1757,7 +1727,7 @@ function addPrimary() {
         <label style="margin:0">SECONDS PER CRAFT</label>
         <button class="info-btn" type="button" onclick="openInfoModal('crafting')">ⓘ</button>
       </div>
-      <div class="mmss-wrap"><input type="text" class="mmss-input" id="isecs-${id}" placeholder="MM:SS"><div class="mmss-overlay"></div></div>
+      <div class="mmss-pair"><input type="text" class="mmss-min mmss-part" id="imin-${id}" placeholder="MM" maxlength="2"><span class="mmss-colon">:</span><input type="text" class="mmss-sec mmss-part" id="isec-${id}" placeholder="SS" maxlength="2"></div>
     </div>` : ''}
     <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
       <label class="check-label" style="margin:0">
@@ -1822,7 +1792,7 @@ function addChainItem() {
         <label style="margin:0">SECONDS PER CRAFT</label>
         <button class="info-btn" type="button" onclick="openInfoModal('crafting')">ⓘ</button>
       </div>
-      <div class="mmss-wrap"><input type="text" class="mmss-input" id="isecs-${id}" placeholder="MM:SS"><div class="mmss-overlay"></div></div>
+      <div class="mmss-pair"><input type="text" class="mmss-min mmss-part" id="imin-${id}" placeholder="MM" maxlength="2"><span class="mmss-colon">:</span><input type="text" class="mmss-sec mmss-part" id="isec-${id}" placeholder="SS" maxlength="2"></div>
     </div>
     <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
       <label class="check-label" style="margin:0">
@@ -1895,7 +1865,7 @@ function addSecondary() {
         <label style="margin:0">SECONDS PER CRAFT</label>
         <button class="info-btn" type="button" onclick="openInfoModal('crafting')">ⓘ</button>
       </div>
-      <div class="mmss-wrap"><input type="text" class="mmss-input" id="isecs-${id}" placeholder="MM:SS"><div class="mmss-overlay"></div></div>
+      <div class="mmss-pair"><input type="text" class="mmss-min mmss-part" id="imin-${id}" placeholder="MM" maxlength="2"><span class="mmss-colon">:</span><input type="text" class="mmss-sec mmss-part" id="isec-${id}" placeholder="SS" maxlength="2"></div>
     </div>
     <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
       <label class="check-label" style="margin:0">
@@ -2041,7 +2011,9 @@ function calculate() {
     const xpPer    = parseFloat(document.getElementById('ixp-'   + id)?.value);
     const qtyOwned = parseInt(document.getElementById('iqty-'  + id)?.value)  || 0;
     const cost     = parseFloat(document.getElementById('icost-' + id)?.value) || 0;
-    const rawSecs      = timeEnabled ? parseMMSS(document.getElementById('isecs-' + id)?.value || '') : 0;
+    const rawMins      = timeEnabled ? (parseInt(document.getElementById('imin-' + id)?.value) || 0) : 0;
+    const rawSec       = timeEnabled ? (parseInt(document.getElementById('isec-' + id)?.value)  || 0) : 0;
+    const rawSecs      = rawMins * 60 + rawSec;
     const secs         = rawSecs > 0 ? rawSecs + 2 : 0;
     const craftRatioOn = document.getElementById('icraftratio-' + id)?.checked;
     const makes        = craftRatioOn ? (parseInt(document.getElementById('imakes-' + id)?.value) || 1) : 1;
