@@ -1318,7 +1318,7 @@ function clearAll() {
   renderPresetTabs();
 }
 
-const VERSION = '1.15';
+const VERSION = '1.16';
 document.getElementById('versionDisplay').textContent = VERSION;
 
 let itemCount = 0;
@@ -1436,12 +1436,12 @@ function xpForLevel(L) {
 }
 
 // ---- MM:SS Input Helpers ----
-// Entry order: S1(units-sec), S0(tens-sec), M1(units-min), M0(tens-min)
+// Entry order: S0(tens-sec), S1(units-sec), M1(units-min), M0(tens-min)
 // Display:     M0 M1 : S0 S1
 function formatMMSS(digits) {
   digits = String(digits||'').replace(/\D/g,'').slice(0,4);
   if (!digits) return '';
-  const M0=digits[3]||'M', M1=digits[2]||'M', S0=digits[1]||'S', S1=digits[0]||'S';
+  const M0=digits[3]||'M', M1=digits[2]||'M', S0=digits[0]||'S', S1=digits[1]||'S';
   return `${M0}${M1}:${S0}${S1}`;
 }
 function parseMMSS(val) {
@@ -1455,7 +1455,7 @@ function secsToDigits(secs) {
   const s = Math.round(parseFloat(secs)||0);
   if (!s) return '';
   const m=Math.floor(s/60), sc=s%60;
-  return `${sc%10}${Math.floor(sc/10)}${m%10}${Math.floor(m/10)}`.replace(/0+$/,'') || '';
+  return `${Math.floor(sc/10)}${sc%10}${m%10}${Math.floor(m/10)}`.replace(/0+$/,'') || '';
 }
 function loadSecsValue(stored) {
   if (!stored && stored !== 0) return 0;
@@ -1474,7 +1474,7 @@ function setMMSSValue(el, digits) {
   if (!digits) { ov.innerHTML = ''; return; }
   const ch = (d,ph) => d && /\d/.test(d) ? `<span class="mmss-digit">${d}</span>` : `<span class="mmss-ph">${ph}</span>`;
   const sep = digits.length >= 3 ? `<span class="mmss-digit">:</span>` : `<span class="mmss-sep">:</span>`;
-  ov.innerHTML = `${ch(digits[3],'M')}${ch(digits[2],'M')}${sep}${ch(digits[1],'S')}${ch(digits[0],'S')}`;
+  ov.innerHTML = `${ch(digits[3],'M')}${ch(digits[2],'M')}${sep}${ch(digits[0],'S')}${ch(digits[1],'S')}`;
 }
 document.addEventListener('keydown', e => {
   if (!e.target.classList.contains('mmss-input')) return;

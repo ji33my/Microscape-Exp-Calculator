@@ -2,6 +2,13 @@
 
 ---
 
+## v1.16 — 2026-05-20
+
+### Both Calculators
+- Fix MM:SS fill order: left-to-right within each pair (tens-of-seconds first), seconds before minutes
+
+---
+
 ## v1.15 — 2026-05-19
 
 ### Both Calculators
