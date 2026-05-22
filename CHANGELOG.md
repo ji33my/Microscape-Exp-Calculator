@@ -2,6 +2,13 @@
 
 ---
 
+## v1.18 — 2026-05-21
+
+### Time Calculator
+- Fix main page status bar not updating while overlay is open or minimized
+
+---
+
 ## v1.17 — 2026-05-20
 
 ### Both Calculators
