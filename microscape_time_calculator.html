@@ -532,7 +532,7 @@
 </div>
 
 <script>
-const VERSION = '1.19';
+const VERSION = '1.20';
 document.getElementById('versionDisplay').textContent = VERSION;
 
 let itemCount = 0;
@@ -970,7 +970,7 @@ function calculate() {
       warnEl.innerHTML += `<div class="warning-box">&#9888; "${name}" — enter seconds per action.</div>`;
       valid = false; return;
     }
-    items.push({ name, qty, secs, rawSecs, cost, makes, isPrimary: block.classList.contains('is-primary') });
+    items.push({ name, qty, secs, rawSecs, cost, makes, isPrimary: block.classList.contains('is-primary'), idx: items.length });
   });
 
   if (items.length === 0) { alert('Add at least one item.'); return; }
@@ -979,9 +979,11 @@ function calculate() {
   let totalSecs = 0, totalBankTrips = 0, totalCost = 0;
 
   items.forEach(item => {
-    const actions      = Math.ceil(item.qty / item.makes);
+    const bagOffset    = item.idx === 0 ? currentBagQty : 0;
+    const gatherQty    = Math.max(0, item.qty - bagOffset);
+    const actions      = Math.ceil(gatherQty / item.makes);
     const effectiveQty = actions * doubleUpFactor;
-    const bankTrips    = Math.floor((item.qty + (item === items[0] ? currentBagQty : 0)) / bagSize);
+    const bankTrips    = Math.floor(item.qty / bagSize);
     const itemSecs     = Math.round(effectiveQty * item.secs + bankTrips * bankingTime);
     const itemCost     = item.qty * item.cost;
     totalSecs      += itemSecs;
@@ -995,7 +997,7 @@ function calculate() {
       <div class="result-card-body">
         <div style="flex:1">
           <div class="result-item-name">${item.name}</div>
-          <div class="result-meta">${item.qty.toLocaleString()} ${item.makes > 1 ? `items (${actions.toLocaleString()} actions)` : 'actions'} &nbsp;&middot;&nbsp; ${item.rawSecs}s each${item.makes > 1 ? ` &nbsp;&middot;&nbsp; ${item.makes}x per action` : ''} &nbsp;&middot;&nbsp; ${bankTrips.toLocaleString()} bank trips</div>
+          <div class="result-meta">${gatherQty.toLocaleString()} ${item.makes > 1 ? `items (${actions.toLocaleString()} actions)` : 'actions'}${bagOffset > 0 ? ` <span style="color:var(--text-dim)">(${bagOffset} in bag)</span>` : ''} &nbsp;&middot;&nbsp; ${item.rawSecs}s each${item.makes > 1 ? ` &nbsp;&middot;&nbsp; ${item.makes}x per action` : ''} &nbsp;&middot;&nbsp; ${bankTrips.toLocaleString()} bank trips</div>
           ${item.cost > 0 ? `<div class="result-cost-line">${itemCost.toLocaleString()} gp total &nbsp;&middot;&nbsp; ${item.cost.toLocaleString()} gp each</div>` : ''}
         </div>
         <div class="result-right">
@@ -1031,7 +1033,10 @@ function calculate() {
   overlayData = {
     items: items.map(i => ({ name: i.name, qty: i.qty, secs: i.secs, makes: i.makes })),
     totalSecs, doubleUpFactor, bankingTime,
-    simulation: items.map((i, idx) => simulateItem(i, doubleUpChance / 100, bagSize, bankingTime, idx === 0 ? currentBagQty : 0))
+    simulation: items.map(i => simulateItem(
+      { ...i, qty: Math.max(0, i.qty - (i.idx === 0 ? currentBagQty : 0)) },
+      doubleUpChance / 100, bagSize, bankingTime, i.idx === 0 ? currentBagQty : 0
+    ))
   };
 
   document.getElementById('results').classList.add('visible');

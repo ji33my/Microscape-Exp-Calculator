@@ -2,6 +2,13 @@
 
 ---
 
+## v1.20 — 2026-05-22
+
+### Time Calculator
+- Fix Current Bag Qty: now correctly reduces remaining actions needed (time decreases as expected), with "(X in bag)" shown in result card
+
+---
+
 ## v1.19 — 2026-05-22
 
 ### Time Calculator
