@@ -494,6 +494,10 @@
       <div class="tip-wrap"><button class="info-btn" type="button" onmousedown="this.blur()">ⓘ</button><span class="tip">18s per bank trip instead of 46s</span></div>
     </div>
   </div>
+  <div style="margin-top:12px;max-width:260px">
+    <label>CURRENT BAG QTY <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
+    <input type="number" id="currentBagQty" min="0" placeholder="0">
+  </div>
   <div class="time-note" style="margin-top:8px">⚠ Does not account for some abilities that would speed up item acquisition and exp gains.</div>
 </div>
 
@@ -528,7 +532,7 @@
 </div>
 
 <script>
-const VERSION = '1.18';
+const VERSION = '1.19';
 document.getElementById('versionDisplay').textContent = VERSION;
 
 let itemCount = 0;
@@ -754,6 +758,7 @@ function captureFormState() {
     shellPockets: document.getElementById('shellPockets').checked,
     gildedPockets:document.getElementById('gildedPockets').checked,
     chillSpot:    document.getElementById('chillSpot').checked,
+    currentBagQty: document.getElementById('currentBagQty').value || '',
     items
   };
 }
@@ -794,6 +799,7 @@ function loadPreset(id) {
   document.getElementById('shellPockets').checked   = !!preset.shellPockets;
   document.getElementById('gildedPockets').checked  = !!preset.gildedPockets;
   document.getElementById('chillSpot').checked      = !!preset.chillSpot;
+  document.getElementById('currentBagQty').value    = preset.currentBagQty || '';
   preset.items.forEach(item => {
     addItem(item.isPrimary);
     const id2 = itemCount;
@@ -917,6 +923,7 @@ function clearAll() {
   document.getElementById('shellPockets').checked  = false;
   document.getElementById('gildedPockets').checked = false;
   document.getElementById('chillSpot').checked     = false;
+  document.getElementById('currentBagQty').value   = '';
   document.getElementById('results').classList.remove('visible');
   const itemsBody = document.getElementById('itemsBody');
   const itemsTitle = document.getElementById('itemsTitle');
@@ -935,7 +942,8 @@ function calculate() {
   const doubleUpFactor = 1 - doubleUpChance / 100;
   const bagSize = (document.getElementById('shellPockets').checked  ? 2 : 0) +
                   (document.getElementById('gildedPockets').checked ? 3 : 0) + 25;
-  const bankingTime = document.getElementById('chillSpot').checked ? 18 : 46;
+  const bankingTime   = document.getElementById('chillSpot').checked ? 18 : 46;
+  const currentBagQty = Math.min(parseInt(document.getElementById('currentBagQty').value) || 0, bagSize - 1);
 
   const warnEl    = document.getElementById('warningBox');
   const resultsEl = document.getElementById('itemResults');
@@ -973,7 +981,7 @@ function calculate() {
   items.forEach(item => {
     const actions      = Math.ceil(item.qty / item.makes);
     const effectiveQty = actions * doubleUpFactor;
-    const bankTrips    = Math.floor(item.qty / bagSize);
+    const bankTrips    = Math.floor((item.qty + (item === items[0] ? currentBagQty : 0)) / bagSize);
     const itemSecs     = Math.round(effectiveQty * item.secs + bankTrips * bankingTime);
     const itemCost     = item.qty * item.cost;
     totalSecs      += itemSecs;
@@ -1023,7 +1031,7 @@ function calculate() {
   overlayData = {
     items: items.map(i => ({ name: i.name, qty: i.qty, secs: i.secs, makes: i.makes })),
     totalSecs, doubleUpFactor, bankingTime,
-    simulation: items.map(i => simulateItem(i, doubleUpChance / 100, bagSize, bankingTime))
+    simulation: items.map((i, idx) => simulateItem(i, doubleUpChance / 100, bagSize, bankingTime, idx === 0 ? currentBagQty : 0))
   };
 
   document.getElementById('results').classList.add('visible');
@@ -1045,10 +1053,10 @@ function stopOverlayCounter() {
 }
 
 // ---- Overlay Simulation ----
-function simulateItem(item, doubleUpRate, bagSize, bankingTime = 46) {
+function simulateItem(item, doubleUpRate, bagSize, bankingTime = 46, startBagQty = 0) {
   const flat = [];
   const makes = item.makes || 1;
-  let t = 0, done = 0, bag = 0;
+  let t = 0, done = 0, bag = startBagQty;
   while (done < item.qty) {
     t += item.secs;
     const gained = ((doubleUpRate > 0 && Math.random() < doubleUpRate) ? 2 : 1) * makes;

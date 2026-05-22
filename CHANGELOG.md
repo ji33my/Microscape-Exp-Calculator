@@ -2,6 +2,13 @@
 
 ---
 
+## v1.19 — 2026-05-22
+
+### Time Calculator
+- Added Current Bag Qty field to settings — accounts for items already in your loot bag when calculating bank trips and overlay simulation
+
+---
+
 ## v1.18 — 2026-05-21
 
 ### Time Calculator
