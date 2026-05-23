@@ -51,10 +51,11 @@ Results show how many of each item to craft or gather, XP contributed per item, 
 - Enable time tracking to see how long your grind will take
 - Input **seconds between items** for your activity
 - **Shell Pockets** (+2 slots) and **Gilded Pockets** (+3 slots) checkboxes adjust loot bag size (base 25) for more accurate banking trip calculations
-- Banking time fixed at 46 seconds per trip
+- **Chill Spot Banking** reduces banking time from 46s to 18s per trip
+- **Current Bag Qty** — enter how many items are already in your loot bag; adjusts the bank trip count to reflect your actual starting state
 - Time displays in seconds, minutes, hours, days, or years as appropriate
 - Each result card shows the estimated time for that specific portion of XP
-- Note: not accurate for Chill Spot banking, and does not account for some abilities that would speed up item acquisition and exp gains
+- Note: does not account for some abilities that would speed up item acquisition and exp gains
 
 ### Live Overlay Timer (Basic Time Calculator only)
 After calculating, click **Open Live Overlay** to launch a floating timer window you can keep visible while playing.

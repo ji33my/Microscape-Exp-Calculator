@@ -1050,6 +1050,10 @@
           <div class="tip-wrap"><button class="info-btn" type="button" onmousedown="this.blur()">ⓘ</button><span class="tip">18s per bank trip instead of 46s</span></div>
         </div>
       </div>
+      <div style="margin-top:12px;max-width:260px">
+        <label>CURRENT BAG QTY <span style="color:var(--text-dim);font-size:13px">(optional)</span></label>
+        <input type="number" id="currentBagQty" min="0" placeholder="0">
+      </div>
       <div class="time-note" style="margin-top:8px">⚠ Does not account for some abilities that would speed up item acquisition and exp gains.</div>
     </div>
   </div>
@@ -1305,6 +1309,7 @@ function clearAll() {
   document.getElementById('shellPockets').checked  = false;
   document.getElementById('gildedPockets').checked = false;
   document.getElementById('chillSpot').checked     = false;
+  document.getElementById('currentBagQty').value   = '';
   toggleTimeOptions();
   switchMode(currentMode, true);
 
@@ -1313,7 +1318,7 @@ function clearAll() {
   renderPresetTabs();
 }
 
-const VERSION = '1.17';
+const VERSION = '1.21';
 document.getElementById('versionDisplay').textContent = VERSION;
 
 let itemCount = 0;
@@ -1573,6 +1578,7 @@ function captureFormState() {
     shellPockets:  document.getElementById('shellPockets').checked,
     gildedPockets: document.getElementById('gildedPockets').checked,
     chillSpot:     document.getElementById('chillSpot').checked,
+    currentBagQty: document.getElementById('currentBagQty').value,
     mode:         currentMode,
     items
   };
@@ -1595,6 +1601,7 @@ function loadPresetData(preset) {
   document.getElementById('shellPockets').checked  = !!preset.shellPockets;
   document.getElementById('gildedPockets').checked = !!preset.gildedPockets;
   document.getElementById('chillSpot').checked     = !!preset.chillSpot;
+  document.getElementById('currentBagQty').value   = preset.currentBagQty || '';
   toggleTimeOptions();
   switchMode(preset.mode || 'crafting', true);
 
@@ -1994,6 +2001,7 @@ function calculate() {
   const bagSize        = (document.getElementById('shellPockets').checked  ? 2 : 0) +
                          (document.getElementById('gildedPockets').checked ? 3 : 0) + 25;
   const bankingTime    = timeEnabled && document.getElementById('chillSpot').checked ? 18 : 46;
+  const currentBagQty = timeEnabled ? Math.min(parseInt(document.getElementById('currentBagQty').value) || 0, bagSize - 1) : 0;
 
   const warnEl    = document.getElementById('warningBox');
   const costEl    = document.getElementById('costSummary');
@@ -2200,7 +2208,7 @@ function calculate() {
     const showSegTime = timeEnabled && segSecs > 0 && !r.ownedCoversGoal && r.craftCount > 0;
     const effectiveCount = r.craftCount * doubleUpFactor;
     const segTimeStr  = showSegTime
-      ? formatTime(Math.round(effectiveCount * segSecs + Math.floor(r.craftCount / bagSize) * bankingTime))
+      ? formatTime(Math.round(effectiveCount * segSecs + Math.floor((r.craftCount + currentBagQty) / bagSize) * bankingTime))
       : null;
     const metaParts = [segTimeStr ?? `${r.item.xpPer.toLocaleString()} XP each`];
     if (r.ownedCoversGoal) {
@@ -2246,7 +2254,7 @@ function calculate() {
     if (timedResults.length > 0) {
       let totalSecs = 0, totalBankTrips = 0;
       timedResults.forEach(r => {
-        const trips = Math.floor(r.craftCount / bagSize);
+        const trips = Math.floor((r.craftCount + currentBagQty) / bagSize);
         totalSecs      += Math.round(r.craftCount * doubleUpFactor * r.item.secs + trips * bankingTime);
         totalBankTrips += trips;
       });

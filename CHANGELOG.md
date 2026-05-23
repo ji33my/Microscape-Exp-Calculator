@@ -2,6 +2,13 @@
 
 ---
 
+## v1.21 — 2026-05-23
+
+### XP Calculator
+- Port Current Bag Qty to XP calculator — entering items already in your loot bag now adjusts the bank trip count (and thus estimated time) to reflect your actual starting state
+
+---
+
 ## v1.20 — 2026-05-22
 
 ### Time Calculator
